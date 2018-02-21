@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
-
-	"github.com/frankh/nano/store"
+	"os"
+	"os/signal"
+	"time"
 )
 
 var MagicNumber = [2]byte{'R', 'C'}
@@ -39,9 +41,52 @@ const (
 	BlockType_change
 )
 
+type Node struct {
+	Net    *Network
+	alarms []*Alarm
+}
+
+func NewNode() *Node {
+	n := new(Node)
+
+	n.Net = NewNetwork()
+	n.alarms = make([]*Alarm, 1)
+
+	return n
+}
+
+func (n *Node) Start() {
+	rand.Seed(time.Now().UnixNano())
+
+	n.alarms[0] = NewAlarm(AlarmFn(n.Net.SendKeepAlives), []interface{}{}, 20*time.Second)
+	n.Net.ListenForUdp()
+
+	// Graceful shutdown
+	sigCh := make(chan os.Signal)
+	signal.Notify(sigCh, os.Interrupt, os.Kill)
+	s := <-sigCh
+	log.Printf("Got signal %s, shutting down...", s.String())
+
+	n.Stop()
+}
+
+func (n *Node) Stop() {
+	n.alarms[0].Stop()
+	n.Net.Stop()
+}
+
 type Peer struct {
 	IP   net.IP
 	Port uint16
+}
+
+func (p *Peer) Addr() *net.UDPAddr {
+	addr, _ := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", p.IP.String(), p.Port))
+	return addr
+}
+
+func (p *Peer) String() string {
+	return fmt.Sprintf("%s:%d", p.IP.String(), p.Port)
 }
 
 type MessageHeader struct {
@@ -87,73 +132,16 @@ func CreateKeepAlive(peers []Peer) *MessageKeepAlive {
 	return m
 }
 
-func (p *Peer) Addr() *net.UDPAddr {
-	addr, _ := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", p.IP.String(), p.Port))
-	return addr
-}
-
-func (p *Peer) String() string {
-	return fmt.Sprintf("%s:%d", p.IP.String(), p.Port)
-}
-
-func handleMessage(source string, buf *bytes.Buffer) {
-	var header MessageHeader
-	header.ReadHeader(bytes.NewBuffer(buf.Bytes()))
-	if header.MagicNumber != MagicNumber {
-		log.Printf("Ignored message. Wrong magic number %s", header.MagicNumber)
-		return
-	}
-
-	sourcePeer := Peer{net.ParseIP(source), 7075}
-	if !PeerSet[sourcePeer.String()] && source != LocalIP {
-		PeerSet[sourcePeer.String()] = true
-		PeerList = append(PeerList, sourcePeer)
-		log.Printf("Added new peer to list: %s, now %d peers", peer.String(), len(PeerList))
-	}
-
-	switch header.MessageType {
-	case Message_keepalive:
-		var m MessageKeepAlive
-		err := m.Read(buf)
-		if err != nil {
-			log.Printf("Failed to read keepalive: %s", err)
-		}
-		log.Printf("Read keepalive from %s", source)
-		err = m.Handle()
-		if err != nil {
-			log.Printf("Failed to handle keepalive")
-		}
-	case Message_publish:
-		var m MessagePublish
-		err := m.Read(buf)
-		if err != nil {
-			log.Printf("Failed to read publish: %s", err)
-		} else {
-			store.StoreBlock(m.ToBlock())
-		}
-	case Message_confirm_ack:
-		var m MessageConfirmAck
-		err := m.Read(buf)
-		if err != nil {
-			log.Printf("Failed to read confirm: %s", err)
-		} else {
-			store.StoreBlock(m.ToBlock())
-		}
-	default:
-		log.Printf("Ignored message. Cannot handle message type %d\n", header.MessageType)
-	}
-}
-
-func (m *MessageKeepAlive) Handle() error {
+func (m *MessageKeepAlive) Handle(network *Network) error {
 	for _, peer := range m.Peers {
-		if peer.IP.String() == LocalIP {
+		if peer.IP.String() == network.LocalIP {
 			continue
 		}
 
-		if !PeerSet[peer.String()] {
-			PeerSet[peer.String()] = true
-			PeerList = append(PeerList, peer)
-			log.Printf("Added new peer to list: %s, now %d peers", peer.String(), len(PeerList))
+		if !network.PeerSet[peer.String()] {
+			network.PeerSet[peer.String()] = true
+			network.PeerList = append(network.PeerList, peer)
+			log.Printf("Added new peer to list: %s, now %d peers", peer.String(), len(network.PeerList))
 		}
 	}
 

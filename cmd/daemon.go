@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"log"
-	"math/rand"
 	"net"
 	"path"
-	"time"
 
 	"github.com/frankh/nano/node"
 	"github.com/frankh/nano/store"
@@ -31,12 +29,13 @@ var daemonCmd = &cobra.Command{
 	Short: "Starts the node's daemon",
 	Long:  `Starts a full Nano node as a long-running process.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		node.DefaultPeer = node.Peer{
+		n := node.NewNode()
+		initialPeer := node.Peer{
 			net.ParseIP(InitialPeer),
 			7075,
 		}
-		node.PeerList = []node.Peer{node.DefaultPeer}
-		node.PeerSet = map[string]bool{node.DefaultPeer.String(): true}
+		n.Net.PeerList = []node.Peer{initialPeer}
+		n.Net.PeerSet = map[string]bool{initialPeer.String(): true}
 
 		if TestNet {
 			log.Println("Using test network configuration")
@@ -47,12 +46,7 @@ var daemonCmd = &cobra.Command{
 			store.Init(store.LiveConfig)
 		}
 
-		rand.Seed(time.Now().UnixNano())
-
-		keepAliveSender := node.NewAlarm(node.AlarmFn(node.SendKeepAlives), []interface{}{}, 20*time.Second)
-		node.ListenForUdp()
-
-		keepAliveSender.Stop()
+		n.Start()
 
 		return nil
 	},

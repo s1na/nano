@@ -7,7 +7,6 @@ import (
 
 	"github.com/frankh/crypto/ed25519"
 	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/store"
 	"github.com/frankh/nano/types"
 )
 
@@ -192,11 +191,6 @@ func TestReadPublish(t *testing.T) {
 	if passed {
 		t.Errorf("Invalid signature should fail")
 	}
-}
-
-func TestHandleMessage(t *testing.T) {
-	store.Init(store.TestConfig)
-	handleMessage(bytes.NewBuffer(publishTest))
 }
 
 func TestReadWriteHeader(t *testing.T) {
