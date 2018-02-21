@@ -5,12 +5,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"os"
 	"os/signal"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var MagicNumber = [2]byte{'R', 'C'}
@@ -65,7 +66,7 @@ func (n *Node) Start() {
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt, os.Kill)
 	s := <-sigCh
-	log.Printf("Got signal %s, shutting down...", s.String())
+	log.WithFields(log.Fields{"signal": s.String()}).Info("Caught signal, shutting down...")
 
 	n.Stop()
 }
@@ -141,7 +142,10 @@ func (m *MessageKeepAlive) Handle(network *Network) error {
 		if !network.PeerSet[peer.String()] {
 			network.PeerSet[peer.String()] = true
 			network.PeerList = append(network.PeerList, peer)
-			log.Printf("Added new peer to list: %s, now %d peers", peer.String(), len(network.PeerList))
+			log.WithFields(log.Fields{
+				"peer": peer.String(),
+				"len":  len(network.PeerList),
+			}).Info("Added new peer to list")
 		}
 	}
 

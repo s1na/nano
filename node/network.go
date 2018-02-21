@@ -2,11 +2,13 @@ package node
 
 import (
 	"bytes"
-	"log"
 	"math/rand"
 	"net"
+	"time"
 
 	"github.com/frankh/nano/store"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const packetSize = 512
@@ -25,13 +27,14 @@ func NewNetwork() *Network {
 	n.PeerList = make([]Peer, 0, 5)
 	n.PeerSet = make(map[string]bool)
 	n.LocalIP = getOutboundIP().String()
-	n.stop = make(chan bool)
+	n.stop = make(chan bool, 1)
 
 	return n
 }
 
 func (n *Network) Stop() {
 	n.stop <- true
+	time.Sleep(500 * time.Millisecond)
 }
 
 func (n *Network) ListenForUdp() {
@@ -39,7 +42,7 @@ func (n *Network) ListenForUdp() {
 }
 
 func (n *Network) listenForUdp() {
-	log.Printf("Listening for udp packets on 7075")
+	log.Info("Listening for udp packets on 7075")
 	ln, err := net.ListenPacket("udp", ":7075")
 	if err != nil {
 		panic(err)
@@ -62,7 +65,7 @@ func (n *Network) listenForUdp() {
 		// TODO: Figure out a way to overcome ReadFrom blocking
 		select {
 		case _ = <-n.stop:
-			log.Println("UPDListener got stop message, shutting down...")
+			log.Info("UPDListener got stop message, shutting down...")
 			break
 		default:
 		}
@@ -81,7 +84,10 @@ func (n *Network) handleMessage(source string, buf *bytes.Buffer) {
 	if !n.PeerSet[sourcePeer.String()] && source != n.LocalIP {
 		n.PeerSet[sourcePeer.String()] = true
 		n.PeerList = append(n.PeerList, sourcePeer)
-		log.Printf("Added new peer to list: %s, now %d peers", sourcePeer.String(), len(n.PeerList))
+		log.WithFields(log.Fields{
+			"peer": sourcePeer.String(),
+			"len":  len(n.PeerList),
+		}).Info("Added new peer to list")
 	}
 
 	switch header.MessageType {
@@ -89,18 +95,18 @@ func (n *Network) handleMessage(source string, buf *bytes.Buffer) {
 		var m MessageKeepAlive
 		err := m.Read(buf)
 		if err != nil {
-			log.Printf("Failed to read keepalive: %s", err)
+			log.WithFields(log.Fields{"err": err.Error()}).Warn("Failed to read keepalive")
 		}
-		log.Printf("Read keepalive from %s", source)
+
 		err = m.Handle(n)
 		if err != nil {
-			log.Printf("Failed to handle keepalive")
+			log.WithFields(log.Fields{"err": err.Error()}).Warn("Failed to handle keepalive")
 		}
 	case Message_publish:
 		var m MessagePublish
 		err := m.Read(buf)
 		if err != nil {
-			log.Printf("Failed to read publish: %s", err)
+			log.WithFields(log.Fields{"err": err.Error()}).Warn("Failed to read publish")
 		} else {
 			store.StoreBlock(m.ToBlock())
 		}
@@ -108,12 +114,12 @@ func (n *Network) handleMessage(source string, buf *bytes.Buffer) {
 		var m MessageConfirmAck
 		err := m.Read(buf)
 		if err != nil {
-			log.Printf("Failed to read confirm: %s", err)
+			log.WithFields(log.Fields{"err": err.Error()}).Warn("Failed to read confirm")
 		} else {
 			store.StoreBlock(m.ToBlock())
 		}
 	default:
-		log.Printf("Ignored message. Cannot handle message type %d\n", header.MessageType)
+		log.WithFields(log.Fields{"type": header.MessageType}).Warn("Message type undefined, ignoring...")
 	}
 }
 

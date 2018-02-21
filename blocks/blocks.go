@@ -11,10 +11,11 @@ import (
 	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/uint128"
 	"github.com/frankh/nano/utils"
-	"github.com/golang/crypto/blake2b"
 	// We've forked golang's ed25519 implementation
 	// to use blake2b instead of sha3
 	"github.com/frankh/crypto/ed25519"
+
+	"github.com/golang/crypto/blake2b"
 )
 
 const LiveGenesisBlockHash types.BlockHash = "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948"

@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
-	"log"
 	"sync"
 
-	"github.com/dgraph-io/badger"
 	"github.com/frankh/nano/address"
 	"github.com/frankh/nano/blocks"
 	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/uint128"
+
+	"github.com/dgraph-io/badger"
+	log "github.com/sirupsen/logrus"
 )
 
 type Config struct {
