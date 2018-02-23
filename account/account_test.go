@@ -1,4 +1,4 @@
-package wallet
+package account
 
 import (
 	"encoding/hex"
@@ -13,8 +13,8 @@ import (
 func TestNew(t *testing.T) {
 	store.Init(store.TestConfig)
 
-	w := New(blocks.TestPrivateKey)
-	if w.GetBalance() != blocks.GenesisAmount {
+	a := New(blocks.TestPrivateKey)
+	if a.GetBalance() != blocks.GenesisAmount {
 		t.Errorf("Genesis block doesn't have correct balance")
 	}
 }
@@ -22,25 +22,25 @@ func TestNew(t *testing.T) {
 func TestPoW(t *testing.T) {
 	blocks.WorkThreshold = 0xff00000000000000
 	store.Init(store.TestConfig)
-	w := New(blocks.TestPrivateKey)
+	a := New(blocks.TestPrivateKey)
 
-	if w.GeneratePoWAsync() != nil || !w.WaitingForPoW() {
+	if a.GeneratePoWAsync() != nil || !a.WaitingForPoW() {
 		t.Errorf("Failed to start PoW generation")
 	}
 
-	if w.GeneratePoWAsync() == nil {
+	if a.GeneratePoWAsync() == nil {
 		t.Errorf("Started PoW while already in progress")
 	}
 
-	_, err := w.Send(blocks.TestGenesisBlock.Account, uint128.FromInts(0, 1))
+	_, err := a.Send(blocks.TestGenesisBlock.Account, uint128.FromInts(0, 1))
 
 	if err == nil {
 		t.Errorf("Created send block without PoW")
 	}
 
-	w.WaitPoW()
+	a.WaitPoW()
 
-	send, _ := w.Send(blocks.TestGenesisBlock.Account, uint128.FromInts(0, 1))
+	send, _ := a.Send(blocks.TestGenesisBlock.Account, uint128.FromInts(0, 1))
 
 	if !blocks.ValidateBlockWork(send) {
 		t.Errorf("Invalid work")
@@ -51,29 +51,29 @@ func TestPoW(t *testing.T) {
 func TestSend(t *testing.T) {
 	blocks.WorkThreshold = 0xff00000000000000
 	store.Init(store.TestConfig)
-	w := New(blocks.TestPrivateKey)
+	a := New(blocks.TestPrivateKey)
 
-	w.GeneratePowSync()
+	a.GeneratePowSync()
 	amount := uint128.FromInts(1, 1)
 
-	send, _ := w.Send(blocks.TestGenesisBlock.Account, amount)
+	send, _ := a.Send(blocks.TestGenesisBlock.Account, amount)
 
-	if w.GetBalance() != blocks.GenesisAmount.Sub(amount) {
+	if a.GetBalance() != blocks.GenesisAmount.Sub(amount) {
 		t.Errorf("Balance unchanged after send")
 	}
 
-	_, err := w.Send(blocks.TestGenesisBlock.Account, blocks.GenesisAmount)
+	_, err := a.Send(blocks.TestGenesisBlock.Account, blocks.GenesisAmount)
 	if err == nil {
 		t.Errorf("Sent more than account balance")
 	}
 
-	w.GeneratePowSync()
+	a.GeneratePowSync()
 	store.StoreBlock(send)
-	receive, _ := w.Receive(send.Hash())
+	receive, _ := a.Receive(send.Hash())
 	store.StoreBlock(receive)
 
-	if w.GetBalance() != blocks.GenesisAmount {
-		t.Errorf("Balance not updated after receive, %x != %x", w.GetBalance().GetBytes(), blocks.GenesisAmount.GetBytes())
+	if a.GetBalance() != blocks.GenesisAmount {
+		t.Errorf("Balance not updated after receive, %x != %x", a.GetBalance().GetBytes(), blocks.GenesisAmount.GetBytes())
 	}
 
 }

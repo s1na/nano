@@ -1,4 +1,4 @@
-package wallet
+package account
 
 import (
 	"encoding/hex"
@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Wallet struct {
+type Account struct {
 	privateKey ed25519.PrivateKey
 	PublicKey  ed25519.PublicKey
 	Head       blocks.Block
@@ -20,91 +20,91 @@ type Wallet struct {
 	PoWchan    chan types.Work
 }
 
-func (w *Wallet) Address() types.Account {
-	return address.PubKeyToAddress(w.PublicKey)
+func (a *Account) Address() types.Account {
+	return address.PubKeyToAddress(a.PublicKey)
 }
 
-func New(private string) (w Wallet) {
-	w.PublicKey, w.privateKey = address.KeypairFromPrivateKey(private)
-	account := address.PubKeyToAddress(w.PublicKey)
+func New(private string) (a Account) {
+	a.PublicKey, a.privateKey = address.KeypairFromPrivateKey(private)
+	account := address.PubKeyToAddress(a.PublicKey)
 
 	open := store.FetchOpen(account)
 	if open != nil {
-		w.Head = open
+		a.Head = open
 	}
 
-	return w
+	return a
 }
 
-// Returns true if the wallet has prepared proof of work,
-func (w *Wallet) HasPoW() bool {
+// Returns true if the account has prepared proof of work,
+func (a *Account) HasPoW() bool {
 	select {
-	case work := <-w.PoWchan:
-		w.Work = &work
-		w.PoWchan = nil
+	case work := <-a.PoWchan:
+		a.Work = &work
+		a.PoWchan = nil
 		return true
 	default:
 		return false
 	}
 }
 
-func (w *Wallet) WaitPoW() {
-	for !w.HasPoW() {
+func (a *Account) WaitPoW() {
+	for !a.HasPoW() {
 	}
 }
 
-func (w *Wallet) WaitingForPoW() bool {
-	return w.PoWchan != nil
+func (a *Account) WaitingForPoW() bool {
+	return a.PoWchan != nil
 }
 
-func (w *Wallet) GeneratePowSync() error {
-	err := w.GeneratePoWAsync()
+func (a *Account) GeneratePowSync() error {
+	err := a.GeneratePoWAsync()
 	if err != nil {
 		return err
 	}
 
-	w.WaitPoW()
+	a.WaitPoW()
 	return nil
 }
 
 // Triggers a goroutine to generate the next proof of work.
-func (w *Wallet) GeneratePoWAsync() error {
-	if w.PoWchan != nil {
+func (a *Account) GeneratePoWAsync() error {
+	if a.PoWchan != nil {
 		return errors.Errorf("Already generating PoW")
 	}
 
-	w.PoWchan = make(chan types.Work)
+	a.PoWchan = make(chan types.Work)
 
-	go func(c chan types.Work, w *Wallet) {
-		if w.Head == nil {
-			c <- blocks.GenerateWorkForHash(types.BlockHash(hex.EncodeToString(w.PublicKey)))
+	go func(c chan types.Work, a *Account) {
+		if a.Head == nil {
+			c <- blocks.GenerateWorkForHash(types.BlockHash(hex.EncodeToString(a.PublicKey)))
 		} else {
-			c <- blocks.GenerateWork(w.Head)
+			c <- blocks.GenerateWork(a.Head)
 		}
-	}(w.PoWchan, w)
+	}(a.PoWchan, a)
 
 	return nil
 }
 
-func (w *Wallet) GetBalance() uint128.Uint128 {
-	if w.Head == nil {
+func (a *Account) GetBalance() uint128.Uint128 {
+	if a.Head == nil {
 		return uint128.FromInts(0, 0)
 	}
 
-	return store.GetBalance(w.Head)
+	return store.GetBalance(a.Head)
 
 }
 
-func (w *Wallet) Open(source types.BlockHash, representative types.Account) (*blocks.OpenBlock, error) {
-	if w.Head != nil {
+func (a *Account) Open(source types.BlockHash, representative types.Account) (*blocks.OpenBlock, error) {
+	if a.Head != nil {
 		return nil, errors.Errorf("Cannot open a non empty account")
 	}
 
-	if w.Work == nil {
+	if a.Work == nil {
 		return nil, errors.Errorf("No PoW")
 	}
 
-	existing := store.FetchOpen(w.Address())
+	existing := store.FetchOpen(a.Address())
 	if existing != nil {
 		return nil, errors.Errorf("Cannot open account, open block already exists")
 	}
@@ -115,64 +115,64 @@ func (w *Wallet) Open(source types.BlockHash, representative types.Account) (*bl
 	}
 
 	common := blocks.CommonBlock{
-		Work:      *w.Work,
+		Work:      *a.Work,
 		Signature: "",
 	}
 
 	block := blocks.OpenBlock{
 		source,
 		representative,
-		w.Address(),
+		a.Address(),
 		common,
 	}
 
-	block.Signature = block.Hash().Sign(w.privateKey)
+	block.Signature = block.Hash().Sign(a.privateKey)
 
 	if !blocks.ValidateBlockWork(&block) {
 		return nil, errors.Errorf("Invalid PoW")
 	}
 
-	w.Head = &block
+	a.Head = &block
 	return &block, nil
 }
 
-func (w *Wallet) Send(destination types.Account, amount uint128.Uint128) (*blocks.SendBlock, error) {
-	if w.Head == nil {
+func (a *Account) Send(destination types.Account, amount uint128.Uint128) (*blocks.SendBlock, error) {
+	if a.Head == nil {
 		return nil, errors.Errorf("Cannot send from empty account")
 	}
 
-	if w.Work == nil {
+	if a.Work == nil {
 		return nil, errors.Errorf("No PoW")
 	}
 
-	if amount.Compare(w.GetBalance()) > 0 {
+	if amount.Compare(a.GetBalance()) > 0 {
 		return nil, errors.Errorf("Tried to send more than balance")
 	}
 
 	common := blocks.CommonBlock{
-		Work:      *w.Work,
+		Work:      *a.Work,
 		Signature: "",
 	}
 
 	block := blocks.SendBlock{
-		w.Head.Hash(),
+		a.Head.Hash(),
 		destination,
-		w.GetBalance().Sub(amount),
+		a.GetBalance().Sub(amount),
 		common,
 	}
 
-	block.Signature = block.Hash().Sign(w.privateKey)
+	block.Signature = block.Hash().Sign(a.privateKey)
 
-	w.Head = &block
+	a.Head = &block
 	return &block, nil
 }
 
-func (w *Wallet) Receive(source types.BlockHash) (*blocks.ReceiveBlock, error) {
-	if w.Head == nil {
+func (a *Account) Receive(source types.BlockHash) (*blocks.ReceiveBlock, error) {
+	if a.Head == nil {
 		return nil, errors.Errorf("Cannot receive to empty account")
 	}
 
-	if w.Work == nil {
+	if a.Work == nil {
 		return nil, errors.Errorf("No PoW")
 	}
 
@@ -186,49 +186,49 @@ func (w *Wallet) Receive(source types.BlockHash) (*blocks.ReceiveBlock, error) {
 		return nil, errors.Errorf("Source block is not a send")
 	}
 
-	if send_block.(*blocks.SendBlock).Destination != w.Address() {
+	if send_block.(*blocks.SendBlock).Destination != a.Address() {
 		return nil, errors.Errorf("Send is not for this account")
 	}
 
 	common := blocks.CommonBlock{
-		Work:      *w.Work,
+		Work:      *a.Work,
 		Signature: "",
 	}
 
 	block := blocks.ReceiveBlock{
-		w.Head.Hash(),
+		a.Head.Hash(),
 		source,
 		common,
 	}
 
-	block.Signature = block.Hash().Sign(w.privateKey)
+	block.Signature = block.Hash().Sign(a.privateKey)
 
-	w.Head = &block
+	a.Head = &block
 	return &block, nil
 }
 
-func (w *Wallet) Change(representative types.Account) (*blocks.ChangeBlock, error) {
-	if w.Head == nil {
+func (a *Account) Change(representative types.Account) (*blocks.ChangeBlock, error) {
+	if a.Head == nil {
 		return nil, errors.Errorf("Cannot change on empty account")
 	}
 
-	if w.Work == nil {
+	if a.Work == nil {
 		return nil, errors.Errorf("No PoW")
 	}
 
 	common := blocks.CommonBlock{
-		Work:      *w.Work,
+		Work:      *a.Work,
 		Signature: "",
 	}
 
 	block := blocks.ChangeBlock{
-		w.Head.Hash(),
+		a.Head.Hash(),
 		representative,
 		common,
 	}
 
-	block.Signature = block.Hash().Sign(w.privateKey)
+	block.Signature = block.Hash().Sign(a.privateKey)
 
-	w.Head = &block
+	a.Head = &block
 	return &block, nil
 }
