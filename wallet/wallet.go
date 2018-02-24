@@ -28,21 +28,37 @@ func NewWallet() *Wallet {
 }
 
 func (w *Wallet) Init() (string, error) {
+	if err := w.GenerateSeed(); err != nil {
+		return "", errors.Wrap(err, "generating seed failed")
+	}
+
+	if err := w.GenerateID(); err != nil {
+		return "", errors.Wrap(err, "generating id failed")
+	}
+
+	return w.Id, nil
+}
+
+func (w *Wallet) GenerateSeed() error {
 	_, prv, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return "", errors.Wrap(err, "generating seed failed")
+		return err
 	}
 
 	w.Seed = strings.ToUpper(hex.EncodeToString(prv))
 
+	return nil
+}
+
+func (w *Wallet) GenerateID() error {
 	pub, _, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return "", errors.Wrap(err, "generating id failed")
+		return err
 	}
 
 	w.Id = strings.ToUpper(hex.EncodeToString(pub))
 
-	return w.Id, nil
+	return nil
 }
 
 func (w *Wallet) NewAccount() *account.Account {

@@ -14,6 +14,7 @@ var ()
 func init() {
 	rootCmd.AddCommand(walletCmd)
 	walletCmd.AddCommand(walletCreateCmd)
+	walletCmd.AddCommand(walletImportCmd)
 	walletCmd.AddCommand(walletGetCmd)
 	walletCmd.AddCommand(walletListCmd)
 }
@@ -46,6 +47,35 @@ var walletCreateCmd = &cobra.Command{
 		}
 
 		fmt.Println(id)
+
+		return nil
+	},
+}
+
+var walletImportCmd = &cobra.Command{
+	Use:   "import WALLET_ID WALLET_SEED",
+	Short: "Import a wallet",
+	Long:  `Import a wallet via its id and seed.`,
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		id := args[0]
+		seed := args[1]
+
+		w := wallet.NewWallet()
+		w.Seed = seed
+		w.Id = id
+
+		store := store.NewStore(&store.TestConfig)
+		if err := store.Start(); err != nil {
+			return err
+		}
+
+		ws := wallet.NewWalletStore(store)
+		if err := ws.SetWallet(w); err != nil {
+			return err
+		}
+
+		fmt.Printf("Stored %s\n", w.Id)
 
 		return nil
 	},
