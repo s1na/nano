@@ -15,17 +15,80 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Config struct {
-	Path         string
-	GenesisBlock *blocks.OpenBlock
-}
-
 const (
 	MetaOpen byte = iota
 	MetaReceive
 	MetaSend
 	MetaChange
 )
+
+var (
+	store *Store
+)
+
+type Config struct {
+	Path         string
+	GenesisBlock *blocks.OpenBlock
+}
+
+type Store struct {
+	conf *Config
+	db   *badger.DB
+}
+
+func NewStore(c *Config) *Store {
+	s := new(Store)
+
+	s.conf = c
+
+	return s
+}
+
+func (s *Store) Start() error {
+	opts := badger.DefaultOptions
+	opts.Dir = s.conf.Path
+	opts.ValueDir = s.conf.Path
+	db, err := badger.Open(opts)
+	if err != nil {
+		return err
+	}
+
+	s.db = db
+
+	return nil
+}
+
+func (s *Store) Stop() {
+	s.db.Close()
+}
+
+func (s *Store) Set(k []byte, v []byte) error {
+	return s.db.Update(func(txn *badger.Txn) error {
+		if err := txn.Set(k, v); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (s *Store) Get(k []byte) ([]byte, error) {
+	var v []byte
+	txn := s.db.NewTransaction(false)
+	defer txn.Discard()
+
+	item, err := txn.Get(k)
+	if err != nil {
+		return nil, err
+	}
+
+	v, err = item.ValueCopy(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
 
 type BlockItem struct {
 	badger.Item

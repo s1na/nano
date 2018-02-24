@@ -6,9 +6,12 @@ import (
 
 	"github.com/frankh/crypto/ed25519"
 	"github.com/frankh/nano/account"
+
+	"github.com/pkg/errors"
 )
 
 type Wallet struct {
+	Id       string
 	Seed     string
 	Accounts map[string]*account.Account
 }
@@ -21,13 +24,20 @@ func NewWallet() *Wallet {
 	return w
 }
 
-func (w *Wallet) GenerateSeed() (string, error) {
-	pub, _, err := ed25519.GenerateKey(nil)
+func (w *Wallet) Init() (string, error) {
+	_, prv, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "generating seed failed")
 	}
 
-	w.Seed = strings.ToUpper(hex.EncodeToString(pub))
+	w.Seed = strings.ToUpper(hex.EncodeToString(prv))
 
-	return w.Seed, nil
+	pub, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		return "", errors.Wrap(err, "generating id failed")
+	}
+
+	w.Id = strings.ToUpper(hex.EncodeToString(pub))
+
+	return w.Id, nil
 }

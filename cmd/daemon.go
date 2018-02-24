@@ -35,22 +35,23 @@ var daemonCmd = &cobra.Command{
 			log.SetLevel(log.DebugLevel)
 		}
 
-		n := node.NewNode()
+		var conf store.Config
+		if TestNet {
+			log.Info("Using test network configuration")
+			store.TestConfig.Path = path.Join(WorkDir, store.TestConfig.Path)
+			conf = store.TestConfig
+		} else {
+			store.LiveConfig.Path = path.Join(WorkDir, store.LiveConfig.Path)
+			conf = store.LiveConfig
+		}
+
+		n := node.NewNode(&conf)
 		initialPeer := node.Peer{
 			net.ParseIP(InitialPeer),
 			7075,
 		}
 		n.Net.PeerList = []node.Peer{initialPeer}
 		n.Net.PeerSet = map[string]bool{initialPeer.String(): true}
-
-		if TestNet {
-			log.Info("Using test network configuration")
-			store.TestConfig.Path = path.Join(WorkDir, store.TestConfig.Path)
-			store.Init(store.TestConfig)
-		} else {
-			store.LiveConfig.Path = path.Join(WorkDir, store.LiveConfig.Path)
-			store.Init(store.LiveConfig)
-		}
 
 		n.Start()
 

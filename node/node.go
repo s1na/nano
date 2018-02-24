@@ -11,6 +11,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/frankh/nano/store"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,13 +47,15 @@ const (
 type Node struct {
 	Net    *Network
 	alarms []*Alarm
+	store  *store.Store
 }
 
-func NewNode() *Node {
+func NewNode(conf *store.Config) *Node {
 	n := new(Node)
 
 	n.Net = NewNetwork()
 	n.alarms = make([]*Alarm, 1)
+	n.store = store.NewStore(conf)
 
 	return n
 }
