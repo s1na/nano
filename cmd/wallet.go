@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/frankh/nano/store"
@@ -16,6 +15,7 @@ func init() {
 	rootCmd.AddCommand(walletCmd)
 	walletCmd.AddCommand(walletCreateCmd)
 	walletCmd.AddCommand(walletGetCmd)
+	walletCmd.AddCommand(walletListCmd)
 }
 
 var walletCmd = &cobra.Command{
@@ -36,14 +36,12 @@ var walletCreateCmd = &cobra.Command{
 		}
 
 		store := store.NewStore(&store.TestConfig)
-		err = store.Start()
-		if err != nil {
+		if err = store.Start(); err != nil {
 			return err
 		}
 
 		ws := wallet.NewWalletStore(store)
-		err = ws.SetWallet(w)
-		if err != nil {
+		if err = ws.SetWallet(w); err != nil {
 			return err
 		}
 
@@ -73,12 +71,32 @@ var walletGetCmd = &cobra.Command{
 			return err
 		}
 
-		output, err := json.Marshal(w)
+		fmt.Println(w.String())
+
+		return nil
+	},
+}
+
+var walletListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List wallets",
+	Long:  `Display information about all locally stored wallets.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		store := store.NewStore(&store.TestConfig)
+		err := store.Start()
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(string(output))
+		ws := wallet.NewWalletStore(store)
+		wallets, err := ws.GetWallets()
+		if err != nil {
+			return err
+		}
+
+		for _, w := range wallets {
+			fmt.Println(w.String())
+		}
 
 		return nil
 	},

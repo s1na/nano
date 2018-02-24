@@ -90,6 +90,56 @@ func (s *Store) Get(k []byte) ([]byte, error) {
 	return v, nil
 }
 
+func (s *Store) GetKeys() [][]byte {
+	keys := make([][]byte, 0, 2)
+	txn := s.db.NewTransaction(false)
+	defer txn.Discard()
+
+	opts := badger.DefaultIteratorOptions
+	opts.PrefetchSize = 10
+	it := txn.NewIterator(opts)
+	for it.Rewind(); it.Valid(); it.Next() {
+		item := it.Item()
+		keys = append(keys, item.Key())
+	}
+
+	return keys
+}
+
+func (s *Store) GetPrefixKeys(prefix []byte) [][]byte {
+	keys := make([][]byte, 0, 2)
+	txn := s.db.NewTransaction(false)
+	defer txn.Discard()
+
+	it := txn.NewIterator(badger.DefaultIteratorOptions)
+	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+		item := it.Item()
+		keys = append(keys, item.Key())
+	}
+
+	return keys
+}
+
+func (s *Store) GetPrefixValues(prefix []byte) (map[string][]byte, error) {
+	res := make(map[string][]byte)
+	txn := s.db.NewTransaction(false)
+	defer txn.Discard()
+
+	it := txn.NewIterator(badger.DefaultIteratorOptions)
+	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+		item := it.Item()
+		k := item.Key()
+		v, err := item.ValueCopy(nil)
+		if err != nil {
+			return nil, err
+		}
+
+		res[string(k)] = v
+	}
+
+	return res, nil
+}
+
 type BlockItem struct {
 	badger.Item
 }

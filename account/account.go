@@ -2,6 +2,7 @@ package account
 
 import (
 	"encoding/hex"
+	"encoding/json"
 
 	"github.com/frankh/crypto/ed25519"
 	"github.com/frankh/nano/address"
@@ -13,19 +14,34 @@ import (
 )
 
 type Account struct {
-	privateKey ed25519.PrivateKey
+	PrivateKey ed25519.PrivateKey
 	PublicKey  ed25519.PublicKey
 	Head       blocks.Block
 	Work       *types.Work
-	PoWchan    chan types.Work
+	powCh      chan types.Work
 }
 
 func (a *Account) Address() types.Account {
 	return address.PubKeyToAddress(a.PublicKey)
 }
 
+func NewAccount() *Account {
+	a := new(Account)
+
+	return a
+}
+
+func (a *Account) String() string {
+	b, err := json.Marshal(a)
+	if err != nil {
+		return string(a.Address())
+	}
+
+	return string(b)
+}
+
 func New(private string) (a Account) {
-	a.PublicKey, a.privateKey = address.KeypairFromPrivateKey(private)
+	a.PublicKey, a.PrivateKey = address.KeypairFromPrivateKey(private)
 	account := address.PubKeyToAddress(a.PublicKey)
 
 	open := store.FetchOpen(account)
@@ -39,9 +55,9 @@ func New(private string) (a Account) {
 // Returns true if the account has prepared proof of work,
 func (a *Account) HasPoW() bool {
 	select {
-	case work := <-a.PoWchan:
+	case work := <-a.powCh:
 		a.Work = &work
-		a.PoWchan = nil
+		a.powCh = nil
 		return true
 	default:
 		return false
@@ -54,7 +70,7 @@ func (a *Account) WaitPoW() {
 }
 
 func (a *Account) WaitingForPoW() bool {
-	return a.PoWchan != nil
+	return a.powCh != nil
 }
 
 func (a *Account) GeneratePowSync() error {
@@ -69,11 +85,11 @@ func (a *Account) GeneratePowSync() error {
 
 // Triggers a goroutine to generate the next proof of work.
 func (a *Account) GeneratePoWAsync() error {
-	if a.PoWchan != nil {
+	if a.powCh != nil {
 		return errors.Errorf("Already generating PoW")
 	}
 
-	a.PoWchan = make(chan types.Work)
+	a.powCh = make(chan types.Work)
 
 	go func(c chan types.Work, a *Account) {
 		if a.Head == nil {
@@ -81,7 +97,7 @@ func (a *Account) GeneratePoWAsync() error {
 		} else {
 			c <- blocks.GenerateWork(a.Head)
 		}
-	}(a.PoWchan, a)
+	}(a.powCh, a)
 
 	return nil
 }
@@ -126,7 +142,7 @@ func (a *Account) Open(source types.BlockHash, representative types.Account) (*b
 		common,
 	}
 
-	block.Signature = block.Hash().Sign(a.privateKey)
+	block.Signature = block.Hash().Sign(a.PrivateKey)
 
 	if !blocks.ValidateBlockWork(&block) {
 		return nil, errors.Errorf("Invalid PoW")
@@ -161,7 +177,7 @@ func (a *Account) Send(destination types.Account, amount uint128.Uint128) (*bloc
 		common,
 	}
 
-	block.Signature = block.Hash().Sign(a.privateKey)
+	block.Signature = block.Hash().Sign(a.PrivateKey)
 
 	a.Head = &block
 	return &block, nil
@@ -201,7 +217,7 @@ func (a *Account) Receive(source types.BlockHash) (*blocks.ReceiveBlock, error) 
 		common,
 	}
 
-	block.Signature = block.Hash().Sign(a.privateKey)
+	block.Signature = block.Hash().Sign(a.PrivateKey)
 
 	a.Head = &block
 	return &block, nil
@@ -227,7 +243,7 @@ func (a *Account) Change(representative types.Account) (*blocks.ChangeBlock, err
 		common,
 	}
 
-	block.Signature = block.Hash().Sign(a.privateKey)
+	block.Signature = block.Hash().Sign(a.PrivateKey)
 
 	a.Head = &block
 	return &block, nil
