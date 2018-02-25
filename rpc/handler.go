@@ -8,7 +8,9 @@ import (
 
 	"github.com/frankh/crypto/ed25519"
 	"github.com/frankh/nano/address"
+	"github.com/frankh/nano/wallet"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
@@ -26,7 +28,8 @@ func NewHandler() *Handler {
 
 func (h *Handler) registerHandlers() {
 	h.fns = map[string]handlerFn{
-		"account_get": handlerFn(accountGet),
+		"account_get":   handlerFn(accountGet),
+		"wallet_create": handlerFn(walletCreate),
 	}
 }
 
@@ -66,5 +69,29 @@ func accountGet(w http.ResponseWriter, body *gjson.Result) {
 	}
 
 	res["account"] = string(address.PubKeyToAddress(ed25519.PublicKey(pubBytes)))
+	json.NewEncoder(w).Encode(res)
+}
+
+func walletCreate(w http.ResponseWriter, body *gjson.Result) {
+	res := make(map[string]string)
+
+	wal := wallet.NewWallet()
+	id, err := wal.Init()
+	if err != nil {
+		res["error"] = "Internal error"
+		json.NewEncoder(w).Encode(res)
+		return
+	}
+
+	ws := wallet.NewWalletStore(db)
+	if err = ws.SetWallet(wal); err != nil {
+		res["error"] = "Internal error"
+		json.NewEncoder(w).Encode(res)
+		return
+	}
+
+	walletsCh <- wal
+
+	res["wallet"] = id
 	json.NewEncoder(w).Encode(res)
 }

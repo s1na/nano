@@ -47,11 +47,12 @@ const (
 )
 
 type Node struct {
-	Net     *Network
-	alarms  []*Alarm
-	store   *store.Store
-	rpc     *rpc.Server
-	wallets map[string]*wallet.Wallet
+	Net       *Network
+	alarms    []*Alarm
+	store     *store.Store
+	rpc       *rpc.Server
+	wallets   map[string]*wallet.Wallet
+	walletsCh chan *wallet.Wallet
 }
 
 func NewNode(conf *store.Config) *Node {
@@ -61,6 +62,7 @@ func NewNode(conf *store.Config) *Node {
 	n.alarms = make([]*Alarm, 1)
 	n.store = store.NewStore(conf)
 	n.wallets = make(map[string]*wallet.Wallet)
+	n.walletsCh = make(chan *wallet.Wallet)
 
 	return n
 }
@@ -68,18 +70,37 @@ func NewNode(conf *store.Config) *Node {
 func (n *Node) Start() {
 	rand.Seed(time.Now().UnixNano())
 
+	if err := n.store.Start(); err != nil {
+		log.Fatal(err)
+	}
+
 	n.alarms[0] = NewAlarm(AlarmFn(n.Net.SendKeepAlives), []interface{}{}, 20*time.Second)
 	n.Net.ListenForUdp()
-	n.rpc = rpc.NewServer()
+	n.rpc = rpc.NewServer(n.store, n.walletsCh)
 	n.rpc.Start()
 
-	// Graceful shutdown
+	n.loop()
+}
+
+func (n *Node) loop() {
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, os.Interrupt, os.Kill)
-	s := <-sigCh
-	log.WithFields(log.Fields{"signal": s.String()}).Info("Caught signal, shutting down...")
 
-	n.Stop()
+	log.Info("Starting node loop")
+
+	for {
+		select {
+		case s := <-sigCh:
+			log.WithFields(log.Fields{"signal": s.String()}).Info("Caught signal, shutting down...")
+			n.Stop()
+			return
+		case w := <-n.walletsCh:
+			log.WithFields(log.Fields{"wallet": w.Id}).Info("Adding wallet to node")
+			n.wallets[w.Id] = w
+		}
+	}
+
+	log.Info("Stopping node loop")
 }
 
 func (n *Node) Stop() {
