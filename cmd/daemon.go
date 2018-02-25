@@ -4,6 +4,7 @@ import (
 	"net"
 	"path"
 
+	"github.com/frankh/nano/network"
 	"github.com/frankh/nano/node"
 	"github.com/frankh/nano/store"
 
@@ -46,11 +47,11 @@ var daemonCmd = &cobra.Command{
 		}
 
 		n := node.NewNode(&conf)
-		initialPeer := node.Peer{
+		initialPeer := network.Peer{
 			net.ParseIP(InitialPeer),
 			7075,
 		}
-		n.Net.PeerList = []node.Peer{initialPeer}
+		n.Net.PeerList = []network.Peer{initialPeer}
 		n.Net.PeerSet = map[string]bool{initialPeer.String(): true}
 
 		n.Start()

@@ -1,4 +1,4 @@
-package node
+package network
 
 import (
 	"bytes"
@@ -7,28 +7,28 @@ import (
 	"github.com/golang/crypto/blake2b"
 )
 
-type MessageVote struct {
+type Vote struct {
 	Account   [32]byte
 	Signature [64]byte
 	Sequence  [8]byte
-	MessageBlock
+	Block
 }
 
-func (m *MessageVote) Hash() []byte {
+func (m *Vote) Hash() []byte {
 	hash, _ := blake2b.New(32, nil)
 
-	hash.Write(m.MessageBlock.ToBlock().Hash().ToBytes())
+	hash.Write(m.Block.ToBlock().Hash().ToBytes())
 	hash.Write(m.Sequence[:])
 
 	return hash.Sum(nil)
 }
 
-func (m *MessageVote) Read(messageBlockType byte, buf *bytes.Buffer) error {
+func (m *Vote) Read(messageBlockType byte, buf *bytes.Buffer) error {
 	n1, err1 := buf.Read(m.Account[:])
 	n2, err2 := buf.Read(m.Signature[:])
 	n3, err3 := buf.Read(m.Sequence[:])
 
-	err4 := m.MessageBlock.Read(messageBlockType, buf)
+	err4 := m.Block.Read(messageBlockType, buf)
 
 	if err1 != nil || err2 != nil || err3 != nil || err4 != nil {
 		return errors.New("Failed to read message vote")
@@ -41,12 +41,12 @@ func (m *MessageVote) Read(messageBlockType byte, buf *bytes.Buffer) error {
 	return nil
 }
 
-func (m *MessageVote) Write(buf *bytes.Buffer) error {
+func (m *Vote) Write(buf *bytes.Buffer) error {
 	n1, err1 := buf.Write(m.Account[:])
 	n2, err2 := buf.Write(m.Signature[:])
 	n3, err3 := buf.Write(m.Sequence[:])
 
-	err4 := m.MessageBlock.Write(buf)
+	err4 := m.Block.Write(buf)
 
 	if err1 != nil || err2 != nil || err3 != nil || err4 != nil {
 		return errors.New("Failed to read message vote")

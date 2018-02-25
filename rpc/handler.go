@@ -10,7 +10,6 @@ import (
 	"github.com/frankh/nano/address"
 	"github.com/frankh/nano/wallet"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
