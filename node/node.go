@@ -11,7 +11,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/frankh/nano/rpc"
 	"github.com/frankh/nano/store"
+	"github.com/frankh/nano/wallet"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -45,9 +47,11 @@ const (
 )
 
 type Node struct {
-	Net    *Network
-	alarms []*Alarm
-	store  *store.Store
+	Net     *Network
+	alarms  []*Alarm
+	store   *store.Store
+	rpc     *rpc.Server
+	wallets map[string]*wallet.Wallet
 }
 
 func NewNode(conf *store.Config) *Node {
@@ -56,6 +60,7 @@ func NewNode(conf *store.Config) *Node {
 	n.Net = NewNetwork()
 	n.alarms = make([]*Alarm, 1)
 	n.store = store.NewStore(conf)
+	n.wallets = make(map[string]*wallet.Wallet)
 
 	return n
 }
@@ -65,6 +70,8 @@ func (n *Node) Start() {
 
 	n.alarms[0] = NewAlarm(AlarmFn(n.Net.SendKeepAlives), []interface{}{}, 20*time.Second)
 	n.Net.ListenForUdp()
+	n.rpc = rpc.NewServer()
+	n.rpc.Start()
 
 	// Graceful shutdown
 	sigCh := make(chan os.Signal)
@@ -76,6 +83,7 @@ func (n *Node) Start() {
 }
 
 func (n *Node) Stop() {
+	n.rpc.Stop()
 	n.alarms[0].Stop()
 	n.Net.Stop()
 }
