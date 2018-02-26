@@ -1,7 +1,6 @@
 package network
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 
@@ -12,66 +11,23 @@ import (
 	"github.com/frankh/nano/utils"
 )
 
-type BlockCommon struct {
-	Signature [64]byte
-	Work      [8]byte
-}
-
-func (m *BlockCommon) ReadCommon(buf *bytes.Buffer) error {
-	n, err := buf.Read(m.Signature[:])
-
-	if n != len(m.Signature) {
-		return errors.New("Wrong number of bytes in signature")
-	}
-	if err != nil {
-		return err
-	}
-
-	work := make([]byte, 8)
-	n, err = buf.Read(work)
-	work = utils.Reversed(work)
-
-	copy(m.Work[:], work)
-
-	if n != len(m.Work) {
-		return errors.New("Wrong number of bytes in work")
-	}
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *BlockCommon) WriteCommon(buf *bytes.Buffer) error {
-	n, err := buf.Write(m.Signature[:])
-
-	if n != len(m.Signature) {
-		return errors.New("Wrong number of bytes in signature")
-	}
-	if err != nil {
-		return err
-	}
-
-	n, err = buf.Write(utils.Reversed(m.Work[:]))
-
-	if n != len(m.Work) {
-		return errors.New("Wrong number of bytes in work")
-	}
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+const (
+	sendSize    = 32 + 32 + 16 + 64 + 8
+	openSize    = 32 + 32 + 32 + 64 + 8
+	changeSize  = 32 + 32 + 64 + 8
+	receiveSize = 32 + 32 + 64 + 8
+)
 
 type Block struct {
-	Type             byte
-	SourceOrPrevious [32]byte // Source for open, previous for others
-	RepDestOrSource  [32]byte // Rep for open/change, dest for send, source for receive
-	Account          [32]byte // Account for open
-	Balance          [16]byte // Balance for send
-	BlockCommon
+	Type           byte
+	Previous       [32]byte
+	Source         [32]byte
+	Destination    [32]byte
+	Representative [32]byte
+	Account        [32]byte
+	Balance        [16]byte
+	Signature      [64]byte
+	Work           [8]byte
 }
 
 func (m *Block) ToBlock() blocks.Block {
@@ -81,33 +37,33 @@ func (m *Block) ToBlock() blocks.Block {
 	}
 
 	switch m.Type {
-	case blockOpen:
-		block := blocks.OpenBlock{
-			types.BlockHash(hex.EncodeToString(m.SourceOrPrevious[:])),
-			address.PubKeyToAddress(m.RepDestOrSource[:]),
-			address.PubKeyToAddress(m.Account[:]),
-			common,
-		}
-		return &block
-	case blockSend:
+	case sendBlock:
 		block := blocks.SendBlock{
-			types.BlockHash(hex.EncodeToString(m.SourceOrPrevious[:])),
-			address.PubKeyToAddress(m.RepDestOrSource[:]),
+			types.BlockHash(hex.EncodeToString(m.Previous[:])),
+			address.PubKeyToAddress(m.Destination[:]),
 			uint128.FromBytes(m.Balance[:]),
 			common,
 		}
 		return &block
-	case blockReceive:
-		block := blocks.ReceiveBlock{
-			types.BlockHash(hex.EncodeToString(m.SourceOrPrevious[:])),
-			types.BlockHash(hex.EncodeToString(m.RepDestOrSource[:])),
+	case openBlock:
+		block := blocks.OpenBlock{
+			types.BlockHash(hex.EncodeToString(m.Source[:])),
+			address.PubKeyToAddress(m.Representative[:]),
+			address.PubKeyToAddress(m.Account[:]),
 			common,
 		}
 		return &block
-	case blockChange:
+	case changeBlock:
 		block := blocks.ChangeBlock{
-			types.BlockHash(hex.EncodeToString(m.SourceOrPrevious[:])),
-			address.PubKeyToAddress(m.RepDestOrSource[:]),
+			types.BlockHash(hex.EncodeToString(m.Previous[:])),
+			address.PubKeyToAddress(m.Representative[:]),
+			common,
+		}
+		return &block
+	case receiveBlock:
+		block := blocks.ReceiveBlock{
+			types.BlockHash(hex.EncodeToString(m.Previous[:])),
+			types.BlockHash(hex.EncodeToString(m.Source[:])),
 			common,
 		}
 		return &block
@@ -116,66 +72,75 @@ func (m *Block) ToBlock() blocks.Block {
 	}
 }
 
-func (m *Block) Read(messageBlockType byte, buf *bytes.Buffer) error {
-	m.Type = messageBlockType
+func (m *Block) Unmarshal(data []byte) error {
+	invalidErr := errors.New("invalid block")
 
-	n1, err1 := buf.Read(m.SourceOrPrevious[:])
-	n2, err2 := buf.Read(m.RepDestOrSource[:])
-
-	if messageBlockType == blockOpen {
-		n, err := buf.Read(m.Account[:])
-		if err != nil || n != 32 {
-			return errors.New("Failed to read account")
+	switch m.Type {
+	case sendBlock:
+		if len(data) != sendSize {
+			return invalidErr
 		}
-	}
 
-	if messageBlockType == blockSend {
-		n, err := buf.Read(m.Balance[:])
-		if err != nil || n != 16 {
-			return errors.New("Failed to read balance")
+		copy(m.Previous[:], data[:32])
+		copy(m.Destination[:], data[32:64])
+		copy(m.Balance[:], data[64:80])
+		copy(m.Signature[:], data[80:144])
+		copy(m.Work[:], utils.Reversed(data[144:152]))
+	case openBlock:
+		if len(data) != openSize {
+			return invalidErr
 		}
-	}
 
-	err3 := m.BlockCommon.ReadCommon(buf)
+		copy(m.Source[:], data[:32])
+		copy(m.Representative[:], data[32:64])
+		copy(m.Account[:], data[64:96])
+		copy(m.Signature[:], data[96:160])
+		copy(m.Work[:], utils.Reversed(data[160:168]))
+	case changeBlock:
+		if len(data) != changeSize {
+			return invalidErr
+		}
 
-	if err1 != nil || err2 != nil || err3 != nil {
-		return errors.New("Failed to read block")
-	}
+		copy(m.Previous[:], data[:32])
+		copy(m.Representative[:], data[32:64])
+		copy(m.Signature[:], data[64:128])
+		copy(m.Work[:], utils.Reversed(data[128:136]))
+	case receiveBlock:
+		if len(data) != receiveSize {
+			return invalidErr
+		}
 
-	if n1 != 32 || n2 != 32 {
-		return errors.New("Wrong number of bytes read")
+		copy(m.Previous[:], data[:32])
+		copy(m.Source[:], data[32:64])
+		copy(m.Signature[:], data[64:128])
+		copy(m.Work[:], utils.Reversed(data[128:136]))
 	}
 
 	return nil
 }
 
-func (m *Block) Write(buf *bytes.Buffer) error {
-	n1, err1 := buf.Write(m.SourceOrPrevious[:])
-	n2, err2 := buf.Write(m.RepDestOrSource[:])
+func (m *Block) Marshal() ([]byte, error) {
+	data := make([]byte, 0, 136)
 
-	if m.Type == blockOpen {
-		n, err := buf.Write(m.Account[:])
-		if err != nil || n != 32 {
-			return errors.New("Failed to write account")
-		}
+	switch m.Type {
+	case sendBlock:
+		data = append(data, m.Previous[:]...)
+		data = append(data, m.Destination[:]...)
+		data = append(data, m.Balance[:]...)
+	case openBlock:
+		data = append(data, m.Source[:]...)
+		data = append(data, m.Representative[:]...)
+		data = append(data, m.Account[:]...)
+	case changeBlock:
+		data = append(data, m.Previous[:]...)
+		data = append(data, m.Representative[:]...)
+	case receiveBlock:
+		data = append(data, m.Previous[:]...)
+		data = append(data, m.Source[:]...)
 	}
 
-	if m.Type == blockSend {
-		n, err := buf.Write(m.Balance[:])
-		if err != nil || n != 16 {
-			return errors.New("Failed to write balance")
-		}
-	}
+	data = append(data, m.Signature[:]...)
+	data = append(data, utils.Reversed(m.Work[:])...)
 
-	err3 := m.BlockCommon.WriteCommon(buf)
-
-	if err1 != nil || err2 != nil || err3 != nil {
-		return errors.New("Failed to write block")
-	}
-
-	if n1 != 32 || n2 != 32 {
-		return errors.New("Wrong number of bytes written")
-	}
-
-	return nil
+	return data, nil
 }

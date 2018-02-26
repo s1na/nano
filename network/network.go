@@ -1,8 +1,6 @@
 package network
 
 import (
-	"bytes"
-	"fmt"
 	"math/rand"
 	"net"
 	"time"
@@ -14,20 +12,6 @@ import (
 
 const packetSize = 512
 const numberOfPeersToShare = 8
-
-type Peer struct {
-	IP   net.IP
-	Port uint16
-}
-
-func (p *Peer) Addr() *net.UDPAddr {
-	addr, _ := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", p.IP.String(), p.Port))
-	return addr
-}
-
-func (p *Peer) String() string {
-	return fmt.Sprintf("%s:%d", p.IP.String(), p.Port)
-}
 
 type Network struct {
 	PeerList []Peer
@@ -73,7 +57,7 @@ func (n *Network) listenForUdp() {
 
 		source := addr.(*net.UDPAddr).IP.String()
 		if c > 0 {
-			n.handleMessage(source, bytes.NewBuffer(buf[:c]))
+			n.handleMessage(source, buf[:c])
 		}
 
 		// Check whether to stop, without blocking
@@ -87,55 +71,39 @@ func (n *Network) listenForUdp() {
 	}
 }
 
-func (n *Network) handleMessage(source string, buf *bytes.Buffer) {
-	var header Header
-	header.ReadHeader(bytes.NewBuffer(buf.Bytes()))
-	if header.MagicNumber != MagicNumber {
-		log.Printf("Ignored message. Wrong magic number %s", header.MagicNumber)
-		return
-	}
-
-	sourcePeer := Peer{net.ParseIP(source), 7075}
-	if !n.PeerSet[sourcePeer.String()] && source != n.LocalIP {
-		n.PeerSet[sourcePeer.String()] = true
-		n.PeerList = append(n.PeerList, sourcePeer)
+func (n *Network) AddPeer(p Peer) {
+	if !n.PeerSet[p.String()] && p.IP.String() != n.LocalIP {
+		n.PeerSet[p.String()] = true
+		n.PeerList = append(n.PeerList, p)
 		log.WithFields(log.Fields{
-			"peer": sourcePeer.String(),
+			"peer": p.String(),
 			"len":  len(n.PeerList),
 		}).Info("Added new peer to list")
 	}
+}
 
-	switch header.Type {
-	case msgKeepalive:
-		var m KeepAlive
-		err := m.Read(buf)
-		if err != nil {
-			log.WithFields(log.Fields{"err": err.Error()}).Warn("Failed to read keepalive")
-		}
-
-		err = m.Handle(n)
-		if err != nil {
-			log.WithFields(log.Fields{"err": err.Error()}).Warn("Failed to handle keepalive")
-		}
-	case msgPublish:
-		var m Publish
-		err := m.Read(buf)
-		if err != nil {
-			log.WithFields(log.Fields{"err": err.Error()}).Warn("Failed to read publish")
-		} else {
-			store.StoreBlock(m.ToBlock())
-		}
-	case msgConfirmAck:
-		var m ConfirmAck
-		err := m.Read(buf)
-		if err != nil {
-			log.WithFields(log.Fields{"err": err.Error()}).Warn("Failed to read confirm")
-		} else {
-			store.StoreBlock(m.ToBlock())
-		}
-	default:
-		log.WithFields(log.Fields{"type": header.Type}).Warn("Message type undefined, ignoring...")
+func (n *Network) handleMessage(source string, data []byte) {
+	msg := new(Message)
+	if err := msg.Unmarshal(data); err != nil {
+		log.WithFields(log.Fields{"source": source, "err": err.Error()}).Warn("Failed to unmarshal message")
+		return
 	}
+
+	sp := Peer{net.ParseIP(source), 7075}
+	n.AddPeer(sp)
+
+	switch m := msg.Body.(type) {
+	case *KeepAlive:
+		for _, peer := range m.Peers {
+			n.AddPeer(peer)
+		}
+	case *Publish:
+		store.StoreBlock(m.ToBlock())
+	case *ConfirmAck:
+		store.StoreBlock(m.ToBlock())
+	}
+
+	return
 }
 
 func (n *Network) SendKeepAlive(peer Peer) error {
@@ -156,10 +124,14 @@ func (n *Network) SendKeepAlive(peer Peer) error {
 	}
 
 	m := NewKeepAlive(randomPeers)
-	buf := bytes.NewBuffer(nil)
-	m.Write(buf)
+	msg := NewMessage(msgKeepalive, m)
+	data, err := msg.Marshal()
+	if err != nil {
+		return err
+	}
 
-	outConn.Write(buf.Bytes())
+	outConn.Write(data)
+
 	return nil
 }
 
