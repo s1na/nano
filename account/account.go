@@ -1,7 +1,6 @@
 package account
 
 import (
-	"encoding/hex"
 	"encoding/json"
 
 	"github.com/frankh/crypto/ed25519"
@@ -93,7 +92,7 @@ func (a *Account) GeneratePoWAsync() error {
 
 	go func(c chan types.Work, a *Account) {
 		if a.Head == nil {
-			c <- blocks.GenerateWorkForHash(types.BlockHash(hex.EncodeToString(a.PublicKey)))
+			c <- blocks.GenerateWorkForHash(types.BlockHashFromSlice(a.PublicKey[:]))
 		} else {
 			c <- blocks.GenerateWork(a.Head)
 		}
@@ -131,8 +130,7 @@ func (a *Account) Open(source types.BlockHash, representative types.Account) (*b
 	}
 
 	common := blocks.CommonBlock{
-		Work:      *a.Work,
-		Signature: "",
+		Work: *a.Work,
 	}
 
 	block := blocks.OpenBlock{
@@ -166,8 +164,7 @@ func (a *Account) Send(destination types.Account, amount uint128.Uint128) (*bloc
 	}
 
 	common := blocks.CommonBlock{
-		Work:      *a.Work,
-		Signature: "",
+		Work: *a.Work,
 	}
 
 	block := blocks.SendBlock{
@@ -207,8 +204,7 @@ func (a *Account) Receive(source types.BlockHash) (*blocks.ReceiveBlock, error) 
 	}
 
 	common := blocks.CommonBlock{
-		Work:      *a.Work,
-		Signature: "",
+		Work: *a.Work,
 	}
 
 	block := blocks.ReceiveBlock{
@@ -233,8 +229,7 @@ func (a *Account) Change(representative types.Account) (*blocks.ChangeBlock, err
 	}
 
 	common := blocks.CommonBlock{
-		Work:      *a.Work,
-		Signature: "",
+		Work: *a.Work,
 	}
 
 	block := blocks.ChangeBlock{

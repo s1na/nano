@@ -1,8 +1,6 @@
 package blocks
 
 import (
-	"encoding/hex"
-
 	"github.com/frankh/nano/address"
 	"github.com/frankh/nano/types"
 )
@@ -14,7 +12,7 @@ type ChangeBlock struct {
 }
 
 func (b *ChangeBlock) Hash() types.BlockHash {
-	return types.BlockHashFromBytes(HashChange(b.PreviousHash, b.Representative))
+	return HashChange(b.PreviousHash, b.Representative)
 }
 
 func (b *ChangeBlock) PreviousBlockHash() types.BlockHash {
@@ -29,8 +27,7 @@ func (*ChangeBlock) Type() BlockType {
 	return Change
 }
 
-func HashChange(previous types.BlockHash, representative types.Account) (result []byte) {
-	previous_bytes, _ := hex.DecodeString(string(previous))
-	repr_bytes, _ := address.AddressToPub(representative)
-	return HashBytes(previous_bytes, repr_bytes)
+func HashChange(previous types.BlockHash, representative types.Account) types.BlockHash {
+	reprBytes, _ := address.AddressToPub(representative)
+	return HashBytes(previous[:], reprBytes)
 }

@@ -1,8 +1,6 @@
 package blocks
 
 import (
-	"encoding/hex"
-
 	"github.com/frankh/nano/types"
 )
 
@@ -13,7 +11,7 @@ type ReceiveBlock struct {
 }
 
 func (b *ReceiveBlock) Hash() types.BlockHash {
-	return types.BlockHashFromBytes(HashReceive(b.PreviousHash, b.SourceHash))
+	return HashReceive(b.PreviousHash, b.SourceHash)
 }
 
 func (b *ReceiveBlock) PreviousBlockHash() types.BlockHash {
@@ -28,8 +26,6 @@ func (*ReceiveBlock) Type() BlockType {
 	return Receive
 }
 
-func HashReceive(previous types.BlockHash, source types.BlockHash) (result []byte) {
-	previous_bytes, _ := hex.DecodeString(string(previous))
-	source_bytes, _ := hex.DecodeString(string(source))
-	return HashBytes(previous_bytes, source_bytes)
+func HashReceive(previous types.BlockHash, source types.BlockHash) types.BlockHash {
+	return HashBytes(previous[:], source[:])
 }

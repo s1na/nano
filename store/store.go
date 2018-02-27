@@ -237,7 +237,7 @@ func Init(config Config) {
 	conn := getConn()
 	defer releaseConn(conn)
 
-	_, err = conn.Get(blocks.LiveGenesisBlockHash.ToBytes())
+	_, err = conn.Get(blocks.LiveGenesisBlockHash[:])
 
 	if err != nil {
 		uncheckedStoreBlock(conn, config.GenesisBlock)
@@ -272,7 +272,7 @@ func FetchBlock(hash types.BlockHash) (b blocks.Block) {
 }
 
 func fetchBlock(conn *badger.Txn, hash types.BlockHash) (b blocks.Block) {
-	item, err := conn.Get(hash.ToBytes())
+	item, err := conn.Get(hash[:])
 	if err != nil {
 		return nil
 	}
@@ -374,7 +374,7 @@ func uncheckedStoreBlock(conn *badger.Txn, block blocks.Block) {
 		}
 		// Open blocks need to be stored twice, once keyed on account,
 		// once keyed on hash.
-		err = conn.SetWithMeta(b.RootHash().ToBytes(), buf.Bytes(), meta)
+		err = conn.SetWithMeta(b.RootHash().Slice(), buf.Bytes(), meta)
 		if err != nil {
 			panic(err)
 		}
@@ -403,7 +403,7 @@ func uncheckedStoreBlock(conn *badger.Txn, block blocks.Block) {
 		panic("Unknown block type")
 	}
 
-	err := conn.SetWithMeta(block.Hash().ToBytes(), buf.Bytes(), meta)
+	err := conn.SetWithMeta(block.Hash().Slice(), buf.Bytes(), meta)
 	if err != nil {
 		panic("Failed to store block")
 	}

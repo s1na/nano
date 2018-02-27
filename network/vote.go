@@ -16,7 +16,7 @@ type Vote struct {
 func (m *Vote) Hash() []byte {
 	hash, _ := blake2b.New(32, nil)
 
-	hash.Write(m.Block.ToBlock().Hash().ToBytes())
+	hash.Write(m.Block.ToBlock().Hash().Slice())
 	hash.Write(m.Sequence[:])
 
 	return hash.Sum(nil)

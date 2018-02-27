@@ -139,28 +139,33 @@ func TestReadPublish(t *testing.T) {
 
 	m, ok := msg.Body.(*Publish)
 	require.True(t, ok)
-	validateTestBlock(t, m.ToBlock(), types.BlockHash("687DCB9C8EB8AF9F39D8107C3432A8732EDBED1E3B5E2E0F6B86643D1EB5E24F"))
+	h, err := types.NewBlockHash("687DCB9C8EB8AF9F39D8107C3432A8732EDBED1E3B5E2E0F6B86643D1EB5E24F")
+	require.Nil(t, err)
+	validateTestBlock(t, m.ToBlock(), h)
 
 	err = msg.Unmarshal(publishReceive)
 	require.Nil(t, err)
 
 	m, ok = msg.Body.(*Publish)
 	require.True(t, ok)
-	validateTestBlock(t, m.ToBlock(), types.BlockHash("7D3E9D79342AA73B7148CB46706D23ED8BB0041A5316D67A053F336ABF0E6B60"))
+	h, _ = types.NewBlockHash("7D3E9D79342AA73B7148CB46706D23ED8BB0041A5316D67A053F336ABF0E6B60")
+	validateTestBlock(t, m.ToBlock(), h)
 
 	err = msg.Unmarshal(publishOpen)
 	require.Nil(t, err)
 
 	m, ok = msg.Body.(*Publish)
 	require.True(t, ok)
-	validateTestBlock(t, m.ToBlock(), types.BlockHash("5F73CF212E58563734D57CCFCCEFE481DE40C96F097F594F4FA32C5585D84AA4"))
+	h, _ = types.NewBlockHash("5F73CF212E58563734D57CCFCCEFE481DE40C96F097F594F4FA32C5585D84AA4")
+	validateTestBlock(t, m.ToBlock(), h)
 
 	err = msg.Unmarshal(publishChange)
 	require.Nil(t, err)
 
 	m, ok = msg.Body.(*Publish)
 	require.True(t, ok)
-	validateTestBlock(t, m.ToBlock(), types.BlockHash("4AABA9923AC794B635B8C3CC275C37F0D28E43D44EB5E27F8B23955E335D5DD3"))
+	h, _ = types.NewBlockHash("4AABA9923AC794B635B8C3CC275C37F0D28E43D44EB5E27F8B23955E335D5DD3")
+	validateTestBlock(t, m.ToBlock(), h)
 
 	err = msg.Unmarshal(publishWrongWork)
 	require.Nil(t, err)

@@ -33,13 +33,13 @@ type Block struct {
 func (m *Block) ToBlock() blocks.Block {
 	common := blocks.CommonBlock{
 		Work:      types.Work(hex.EncodeToString(m.Work[:])),
-		Signature: types.Signature(hex.EncodeToString(m.Signature[:])),
+		Signature: types.Signature(m.Signature),
 	}
 
 	switch m.Type {
 	case sendBlock:
 		block := blocks.SendBlock{
-			types.BlockHash(hex.EncodeToString(m.Previous[:])),
+			types.BlockHash(m.Previous),
 			address.PubKeyToAddress(m.Destination[:]),
 			uint128.FromBytes(m.Balance[:]),
 			common,
@@ -47,7 +47,7 @@ func (m *Block) ToBlock() blocks.Block {
 		return &block
 	case openBlock:
 		block := blocks.OpenBlock{
-			types.BlockHash(hex.EncodeToString(m.Source[:])),
+			types.BlockHash(m.Source),
 			address.PubKeyToAddress(m.Representative[:]),
 			address.PubKeyToAddress(m.Account[:]),
 			common,
@@ -55,15 +55,15 @@ func (m *Block) ToBlock() blocks.Block {
 		return &block
 	case changeBlock:
 		block := blocks.ChangeBlock{
-			types.BlockHash(hex.EncodeToString(m.Previous[:])),
+			types.BlockHash(m.Previous),
 			address.PubKeyToAddress(m.Representative[:]),
 			common,
 		}
 		return &block
 	case receiveBlock:
 		block := blocks.ReceiveBlock{
-			types.BlockHash(hex.EncodeToString(m.Previous[:])),
-			types.BlockHash(hex.EncodeToString(m.Source[:])),
+			types.BlockHash(m.Previous),
+			types.BlockHash(m.Source),
 			common,
 		}
 		return &block

@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/frankh/nano/address"
 	"github.com/frankh/nano/types"
@@ -16,33 +15,36 @@ import (
 	"github.com/frankh/crypto/ed25519"
 
 	"github.com/golang/crypto/blake2b"
+	"github.com/pkg/errors"
 )
 
-const LiveGenesisBlockHash types.BlockHash = "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948"
-const LiveGenesisSourceHash types.BlockHash = "E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA"
+var LiveGenesisBlockHash, _ = types.NewBlockHash("991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948")
+var LiveGenesisSourceHash, _ = types.NewBlockHash("E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA")
 
 var GenesisAmount uint128.Uint128 = uint128.FromInts(0xffffffffffffffff, 0xffffffffffffffff)
 var WorkThreshold = uint64(0xffffffc000000000)
 
 const TestPrivateKey string = "34F0A37AAD20F4A260F0A5B3CB3D7FB50673212263E58A380BC10474BB039CE4"
 
-var TestGenesisBlock = FromJson([]byte(`{
+var testGenesisBlock, _ = FromJson([]byte(`{
 	"type": "open",
 	"source": "B0311EA55708D6A53C75CDBF88300259C6D018522FE3D4D0A242E431F9E8B6D0",
 	"representative": "xrb_3e3j5tkog48pnny9dmfzj1r16pg8t1e76dz5tmac6iq689wyjfpiij4txtdo",
 	"account": "xrb_3e3j5tkog48pnny9dmfzj1r16pg8t1e76dz5tmac6iq689wyjfpiij4txtdo",
 	"work": "9680625b39d3363d",
 	"signature": "ECDA914373A2F0CA1296475BAEE40500A7F0A7AD72A5A80C81D7FAB7F6C802B2CC7DB50F5DD0FB25B2EF11761FA7344A158DD5A700B21BD47DE5BD0F63153A02"
-}`)).(*OpenBlock)
+}`))
+var TestGenesisBlock = testGenesisBlock.(*OpenBlock)
 
-var LiveGenesisBlock = FromJson([]byte(`{
+var liveGenesisBlock, _ = FromJson([]byte(`{
 	"type":           "open",
 	"source":         "E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA",
 	"representative": "xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
 	"account":        "xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
 	"work":           "62f05417dd3fb691",
 	"signature":      "9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02"
-}`)).(*OpenBlock)
+}`))
+var LiveGenesisBlock = liveGenesisBlock.(*OpenBlock)
 
 type BlockType string
 
@@ -88,9 +90,13 @@ type RawBlock struct {
 	Destination    types.Account
 }
 
-func FromJson(b []byte) (block Block) {
+func FromJson(b []byte) (Block, error) {
+	var block Block
 	var raw RawBlock
-	json.Unmarshal(b, &raw)
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
 	common := CommonBlock{
 		Work:      raw.Work,
 		Signature: raw.Signature,
@@ -98,44 +104,39 @@ func FromJson(b []byte) (block Block) {
 
 	switch raw.Type {
 	case Open:
-		b := OpenBlock{
+		block = &OpenBlock{
 			raw.Source,
 			raw.Representative,
 			raw.Account,
 			common,
 		}
-		block = &b
 	case Send:
-		b := SendBlock{
+		block = &SendBlock{
 			raw.Previous,
 			raw.Destination,
 			raw.Balance,
 			common,
 		}
-		block = &b
 	case Receive:
-		b := ReceiveBlock{
+		block = &ReceiveBlock{
 			raw.Previous,
 			raw.Source,
 			common,
 		}
-		block = &b
 	case Change:
-		b := ChangeBlock{
+		block = &ChangeBlock{
 			raw.Previous,
 			raw.Representative,
 			common,
 		}
-		block = &b
 	default:
-		panic("Unknown block type")
+		return nil, errors.New("unknown block type")
 	}
 
-	return block
-
+	return block, nil
 }
 
-func (b RawBlock) Hash() (result []byte) {
+func (b RawBlock) Hash() [32]byte {
 	switch b.Type {
 	case Open:
 		return HashOpen(b.Source, b.Representative, b.Account)
@@ -150,16 +151,16 @@ func (b RawBlock) Hash() (result []byte) {
 	}
 }
 
-func (b RawBlock) HashToString() (result types.BlockHash) {
-	return types.BlockHash(strings.ToUpper(hex.EncodeToString(b.Hash())))
+func (b RawBlock) HashToString() string {
+	return types.BlockHash(b.Hash()).String()
 }
 
-func SignMessage(private_key string, message []byte) (signature []byte) {
-	_, priv := address.KeypairFromPrivateKey(private_key)
-	return ed25519.Sign(priv, message)
+func SignMessage(prvStr string, message []byte) types.Signature {
+	_, prv := address.KeypairFromPrivateKey(prvStr)
+	return types.SignatureFromSlice(ed25519.Sign(prv, message))
 }
 
-func HashBytes(inputs ...[]byte) (result []byte) {
+func HashBytes(inputs ...[]byte) types.BlockHash {
 	hash, err := blake2b.New(32, nil)
 	if err != nil {
 		panic("Unable to create hash")
@@ -169,7 +170,7 @@ func HashBytes(inputs ...[]byte) (result []byte) {
 		hash.Write(b)
 	}
 
-	return hash.Sum(nil)
+	return types.BlockHashFromSlice(hash.Sum(nil))
 }
 
 // ValidateWork takes the "work" value (little endian from hex)
@@ -178,7 +179,7 @@ func HashBytes(inputs ...[]byte) (result []byte) {
 // work and the block hash and convert this to a uint64
 // which must be higher (or equal) than the difficulty
 // (0xffffffc000000000) to be valid.
-func ValidateWork(block_hash []byte, work []byte) bool {
+func ValidateWork(blockHash [32]byte, work []byte) bool {
 	hash, err := blake2b.New(8, nil)
 	if err != nil {
 		panic("Unable to create hash")
@@ -188,27 +189,25 @@ func ValidateWork(block_hash []byte, work []byte) bool {
 	}
 
 	hash.Write(work)
-	hash.Write(block_hash)
+	hash.Write(blockHash[:])
 
-	work_value := hash.Sum(nil)
-	work_value_int := binary.LittleEndian.Uint64(work_value)
+	workValue := hash.Sum(nil)
+	workValueInt := binary.LittleEndian.Uint64(workValue)
 
-	return work_value_int >= WorkThreshold
+	return workValueInt >= WorkThreshold
 }
 
 func ValidateBlockWork(b Block) bool {
-	hash_bytes := b.RootHash().ToBytes()
-	work_bytes, _ := hex.DecodeString(string(b.GetWork()))
+	workBytes, _ := hex.DecodeString(string(b.GetWork()))
+	res := ValidateWork(b.RootHash(), utils.Reversed(workBytes))
 
-	res := ValidateWork(hash_bytes, utils.Reversed(work_bytes))
 	return res
 }
 
 func GenerateWorkForHash(b types.BlockHash) types.Work {
-	block_hash := b.ToBytes()
 	work := []byte{0, 0, 0, 0, 0, 0, 0, 0}
 	for {
-		if ValidateWork(block_hash, work) {
+		if ValidateWork(b, work) {
 			return types.Work(fmt.Sprintf("%x", utils.Reversed(work)))
 		}
 		incrementWork(work)

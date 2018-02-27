@@ -1,8 +1,6 @@
 package blocks
 
 import (
-	"encoding/hex"
-
 	"github.com/frankh/nano/address"
 	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/uint128"
@@ -16,7 +14,7 @@ type SendBlock struct {
 }
 
 func (b *SendBlock) Hash() types.BlockHash {
-	return types.BlockHashFromBytes(HashSend(b.PreviousHash, b.Destination, b.Balance))
+	return HashSend(b.PreviousHash, b.Destination, b.Balance)
 }
 
 func (b *SendBlock) PreviousBlockHash() types.BlockHash {
@@ -31,10 +29,9 @@ func (*SendBlock) Type() BlockType {
 	return Send
 }
 
-func HashSend(previous types.BlockHash, destination types.Account, balance uint128.Uint128) (result []byte) {
-	previous_bytes, _ := hex.DecodeString(string(previous))
-	dest_bytes, _ := address.AddressToPub(destination)
-	balance_bytes := balance.GetBytes()
+func HashSend(previous types.BlockHash, destination types.Account, balance uint128.Uint128) types.BlockHash {
+	destBytes, _ := address.AddressToPub(destination)
+	balanceBytes := balance.GetBytes()
 
-	return HashBytes(previous_bytes, dest_bytes, balance_bytes)
+	return HashBytes(previous[:], destBytes, balanceBytes)
 }
