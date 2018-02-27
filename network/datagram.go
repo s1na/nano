@@ -2,7 +2,6 @@ package network
 
 import (
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -190,25 +189,6 @@ func NewKeepAlive(peers []Peer) *KeepAlive {
 	}
 
 	return m
-}
-
-func (m *KeepAlive) Handle(network *Network) error {
-	for _, peer := range m.Peers {
-		if peer.IP.String() == network.LocalIP {
-			continue
-		}
-
-		if !network.PeerSet[peer.String()] {
-			network.PeerSet[peer.String()] = true
-			network.PeerList = append(network.PeerList, peer)
-			log.WithFields(log.Fields{
-				"peer": peer.String(),
-				"len":  len(network.PeerList),
-			}).Info("Added new peer to list")
-		}
-	}
-
-	return nil
 }
 
 func (m *KeepAlive) Unmarshal(data []byte) error {

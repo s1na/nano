@@ -68,109 +68,12 @@ type CommonBlock struct {
 	Confirmed bool
 }
 
-type OpenBlock struct {
-	SourceHash     types.BlockHash
-	Representative types.Account
-	Account        types.Account
-	CommonBlock
-}
-
-type SendBlock struct {
-	PreviousHash types.BlockHash
-	Destination  types.Account
-	Balance      uint128.Uint128
-	CommonBlock
-}
-
-type ReceiveBlock struct {
-	PreviousHash types.BlockHash
-	SourceHash   types.BlockHash
-	CommonBlock
-}
-
-type ChangeBlock struct {
-	PreviousHash   types.BlockHash
-	Representative types.Account
-	CommonBlock
-}
-
-func (b *OpenBlock) Hash() types.BlockHash {
-	return types.BlockHashFromBytes(HashOpen(b.SourceHash, b.Representative, b.Account))
-}
-
-func (b *ReceiveBlock) Hash() types.BlockHash {
-	return types.BlockHashFromBytes(HashReceive(b.PreviousHash, b.SourceHash))
-}
-
-func (b *ChangeBlock) Hash() types.BlockHash {
-	return types.BlockHashFromBytes(HashChange(b.PreviousHash, b.Representative))
-}
-
-func (b *SendBlock) Hash() types.BlockHash {
-	return types.BlockHashFromBytes(HashSend(b.PreviousHash, b.Destination, b.Balance))
-}
-
-func (b *ReceiveBlock) PreviousBlockHash() types.BlockHash {
-	return b.PreviousHash
-}
-
-func (b *ChangeBlock) PreviousBlockHash() types.BlockHash {
-	return b.PreviousHash
-}
-
-func (b *SendBlock) PreviousBlockHash() types.BlockHash {
-	return b.PreviousHash
-}
-
-func (b *OpenBlock) PreviousBlockHash() types.BlockHash {
-	return b.SourceHash
-}
-
-func (b *OpenBlock) RootHash() types.BlockHash {
-	pub, _ := address.AddressToPub(b.Account)
-	return types.BlockHash(hex.EncodeToString(pub))
-}
-
-func (b *ReceiveBlock) RootHash() types.BlockHash {
-	return b.PreviousHash
-}
-
-func (b *ChangeBlock) RootHash() types.BlockHash {
-	return b.PreviousHash
-}
-
-func (b *SendBlock) RootHash() types.BlockHash {
-	return b.PreviousHash
-}
-
 func (b *CommonBlock) GetSignature() types.Signature {
 	return b.Signature
 }
 
 func (b *CommonBlock) GetWork() types.Work {
 	return b.Work
-}
-
-func (*SendBlock) Type() BlockType {
-	return Send
-}
-
-func (*OpenBlock) Type() BlockType {
-	return Open
-}
-
-func (*ChangeBlock) Type() BlockType {
-	return Change
-}
-
-func (*ReceiveBlock) Type() BlockType {
-	return Receive
-}
-
-func (b *OpenBlock) VerifySignature() (bool, error) {
-	pub, _ := address.AddressToPub(b.Account)
-	res := ed25519.Verify(pub, b.Hash().ToBytes(), b.Signature.ToBytes())
-	return res, nil
 }
 
 type RawBlock struct {
@@ -267,33 +170,6 @@ func HashBytes(inputs ...[]byte) (result []byte) {
 	}
 
 	return hash.Sum(nil)
-}
-
-func HashReceive(previous types.BlockHash, source types.BlockHash) (result []byte) {
-	previous_bytes, _ := hex.DecodeString(string(previous))
-	source_bytes, _ := hex.DecodeString(string(source))
-	return HashBytes(previous_bytes, source_bytes)
-}
-
-func HashChange(previous types.BlockHash, representative types.Account) (result []byte) {
-	previous_bytes, _ := hex.DecodeString(string(previous))
-	repr_bytes, _ := address.AddressToPub(representative)
-	return HashBytes(previous_bytes, repr_bytes)
-}
-
-func HashSend(previous types.BlockHash, destination types.Account, balance uint128.Uint128) (result []byte) {
-	previous_bytes, _ := hex.DecodeString(string(previous))
-	dest_bytes, _ := address.AddressToPub(destination)
-	balance_bytes := balance.GetBytes()
-
-	return HashBytes(previous_bytes, dest_bytes, balance_bytes)
-}
-
-func HashOpen(source types.BlockHash, representative types.Account, account types.Account) (result []byte) {
-	source_bytes, _ := hex.DecodeString(string(source))
-	repr_bytes, _ := address.AddressToPub(representative)
-	account_bytes, _ := address.AddressToPub(account)
-	return HashBytes(source_bytes, repr_bytes, account_bytes)
 }
 
 // ValidateWork takes the "work" value (little endian from hex)
