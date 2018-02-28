@@ -1,31 +1,26 @@
 package blocks
 
 import (
-	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
 
-	"github.com/frankh/nano/address"
 	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/uint128"
-	"github.com/frankh/nano/utils"
+
 	// We've forked golang's ed25519 implementation
 	// to use blake2b instead of sha3
 	"github.com/frankh/crypto/ed25519"
-
 	"github.com/golang/crypto/blake2b"
 	"github.com/pkg/errors"
 )
 
-var LiveGenesisBlockHash, _ = types.NewBlockHash("991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948")
-var LiveGenesisSourceHash, _ = types.NewBlockHash("E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA")
+var LiveGenesisBlockHash, _ = types.BlockHashFromString("991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948")
+var LiveGenesisSourceHash, _ = types.BlockHashFromString("E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA")
 
 var GenesisAmount uint128.Uint128 = uint128.FromInts(0xffffffffffffffff, 0xffffffffffffffff)
-var WorkThreshold = uint64(0xffffffc000000000)
 
 const TestPrivateKey string = "34F0A37AAD20F4A260F0A5B3CB3D7FB50673212263E58A380BC10474BB039CE4"
 
+var GenesisBlock *OpenBlock
 var testGenesisBlock, _ = FromJson([]byte(`{
 	"type": "open",
 	"source": "B0311EA55708D6A53C75CDBF88300259C6D018522FE3D4D0A242E431F9E8B6D0",
@@ -59,15 +54,14 @@ type Block interface {
 	Type() BlockType
 	GetSignature() types.Signature
 	GetWork() types.Work
-	RootHash() types.BlockHash
+	GetRoot() types.BlockHash
 	Hash() types.BlockHash
-	PreviousBlockHash() types.BlockHash
+	GetPrevious() types.BlockHash
 }
 
 type CommonBlock struct {
 	Work      types.Work
 	Signature types.Signature
-	Confirmed bool
 }
 
 func (b *CommonBlock) GetSignature() types.Signature {
@@ -81,13 +75,13 @@ func (b *CommonBlock) GetWork() types.Work {
 type RawBlock struct {
 	Type           BlockType
 	Source         types.BlockHash
-	Representative types.Account
-	Account        types.Account
+	Representative types.AccPub
+	Account        types.AccPub
 	Work           types.Work
 	Signature      types.Signature
 	Previous       types.BlockHash
 	Balance        uint128.Uint128
-	Destination    types.Account
+	Destination    types.AccPub
 }
 
 func FromJson(b []byte) (Block, error) {
@@ -155,9 +149,13 @@ func (b RawBlock) HashToString() string {
 	return types.BlockHash(b.Hash()).String()
 }
 
-func SignMessage(prvStr string, message []byte) types.Signature {
-	_, prv := address.KeypairFromPrivateKey(prvStr)
-	return types.SignatureFromSlice(ed25519.Sign(prv, message))
+func SignMessage(prvStr string, message []byte) (types.Signature, error) {
+	_, prv, err := types.KeypairFromPrivateKey(prvStr)
+	if err != nil {
+		return types.Signature{}, err
+	}
+
+	return types.SignatureFromSlice(ed25519.Sign(prv, message)), nil
 }
 
 func HashBytes(inputs ...[]byte) types.BlockHash {
@@ -173,60 +171,10 @@ func HashBytes(inputs ...[]byte) types.BlockHash {
 	return types.BlockHashFromSlice(hash.Sum(nil))
 }
 
-// ValidateWork takes the "work" value (little endian from hex)
-// and block hash and verifies that the work passes the difficulty.
-// To verify this, we create a new 8 byte hash of the
-// work and the block hash and convert this to a uint64
-// which must be higher (or equal) than the difficulty
-// (0xffffffc000000000) to be valid.
-func ValidateWork(blockHash [32]byte, work []byte) bool {
-	hash, err := blake2b.New(8, nil)
-	if err != nil {
-		panic("Unable to create hash")
-	}
-	if len(work) != 8 {
-		panic("Bad work length")
-	}
-
-	hash.Write(work)
-	hash.Write(blockHash[:])
-
-	workValue := hash.Sum(nil)
-	workValueInt := binary.LittleEndian.Uint64(workValue)
-
-	return workValueInt >= WorkThreshold
-}
-
 func ValidateBlockWork(b Block) bool {
-	workBytes, _ := hex.DecodeString(string(b.GetWork()))
-	res := ValidateWork(b.RootHash(), utils.Reversed(workBytes))
-
-	return res
-}
-
-func GenerateWorkForHash(b types.BlockHash) types.Work {
-	work := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	for {
-		if ValidateWork(b, work) {
-			return types.Work(fmt.Sprintf("%x", utils.Reversed(work)))
-		}
-		incrementWork(work)
-	}
+	return b.GetWork().Validate(b.GetRoot())
 }
 
 func GenerateWork(b Block) types.Work {
-	return GenerateWorkForHash(b.Hash())
-}
-
-func incrementWork(work []byte) {
-	for i := 0; i < len(work)-1; i++ {
-		if work[i] < 255 {
-			work[i]++
-			return
-		} else {
-			work[i]++
-			incrementWork(work[i+1:])
-			return
-		}
-	}
+	return types.GenerateWorkForHash(b.Hash())
 }

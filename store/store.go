@@ -1,53 +1,30 @@
 package store
 
 import (
-	"bytes"
-	"encoding/gob"
-	"errors"
-	"sync"
-
-	"github.com/frankh/nano/address"
-	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/types"
-	"github.com/frankh/nano/uint128"
-
 	"github.com/dgraph-io/badger"
-	log "github.com/sirupsen/logrus"
-)
-
-const (
-	MetaOpen byte = iota
-	MetaReceive
-	MetaSend
-	MetaChange
 )
 
 var (
 	store *Store
 )
 
-type Config struct {
-	Path         string
-	GenesisBlock *blocks.OpenBlock
-}
-
 type Store struct {
-	conf *Config
-	db   *badger.DB
+	db      *badger.DB
+	dataDir string
 }
 
-func NewStore(c *Config) *Store {
+func NewStore(dataDir string) *Store {
 	s := new(Store)
 
-	s.conf = c
+	s.dataDir = dataDir
 
 	return s
 }
 
 func (s *Store) Start() error {
 	opts := badger.DefaultOptions
-	opts.Dir = s.conf.Path
-	opts.ValueDir = s.conf.Path
+	opts.Dir = s.dataDir
+	opts.ValueDir = s.dataDir
 	db, err := badger.Open(opts)
 	if err != nil {
 		return err
@@ -140,90 +117,9 @@ func (s *Store) GetPrefixValues(prefix []byte) (map[string][]byte, error) {
 	return res, nil
 }
 
-type BlockItem struct {
-	badger.Item
-}
-
-func (i *BlockItem) ToBlock() blocks.Block {
-	meta := i.UserMeta()
-	value, _ := i.Value()
-
-	dec := gob.NewDecoder(bytes.NewBuffer(value))
-	var result blocks.Block
-
-	switch meta {
-	case MetaOpen:
-		var b blocks.OpenBlock
-		dec.Decode(&b)
-		result = &b
-	case MetaReceive:
-		var b blocks.ReceiveBlock
-		dec.Decode(&b)
-		result = &b
-	case MetaSend:
-		var b blocks.SendBlock
-		dec.Decode(&b)
-		result = &b
-	case MetaChange:
-		var b blocks.ChangeBlock
-		dec.Decode(&b)
-		result = &b
-	}
-
-	return result
-}
-
-var LiveConfig = Config{
-	"DATA",
-	blocks.LiveGenesisBlock,
-}
-
-var TestConfig = Config{
-	"TESTDATA",
-	blocks.TestGenesisBlock,
-}
-
-var TestConfigLive = Config{
-	"TESTDATA",
-	blocks.LiveGenesisBlock,
-}
-
 // Blocks that we cannot store due to not having their parent
 // block stored
-var unconnectedBlockPool map[types.BlockHash]blocks.Block
-
-var Conf *Config
-var globalConn *badger.DB
-var currentTxn *badger.Txn
-var connLock sync.Mutex
-
-func getConn() *badger.Txn {
-	connLock.Lock()
-
-	if currentTxn != nil {
-		return currentTxn
-	}
-
-	if globalConn == nil {
-		opts := badger.DefaultOptions
-		opts.Dir = Conf.Path
-		opts.ValueDir = Conf.Path
-		conn, err := badger.Open(opts)
-		if err != nil {
-			panic(err)
-		}
-		globalConn = conn
-	}
-
-	currentTxn = globalConn.NewTransaction(true)
-	return currentTxn
-}
-
-func releaseConn(conn *badger.Txn) {
-	currentTxn.Commit(nil)
-	currentTxn = nil
-	connLock.Unlock()
-}
+/*var unconnectedBlockPool map[types.BlockHash]blocks.Block
 
 func Init(config Config) {
 	var err error
@@ -242,45 +138,9 @@ func Init(config Config) {
 	if err != nil {
 		uncheckedStoreBlock(conn, config.GenesisBlock)
 	}
-}
+}*/
 
-func FetchOpen(account types.Account) (b *blocks.OpenBlock) {
-	conn := getConn()
-	defer releaseConn(conn)
-	return fetchOpen(conn, account)
-}
-
-func fetchOpen(conn *badger.Txn, account types.Account) (b *blocks.OpenBlock) {
-	account_bytes, err := address.AddressToPub(account)
-	if err != nil {
-		return nil
-	}
-
-	item, err := conn.Get(account_bytes)
-	if err != nil {
-		return nil
-	}
-
-	blockItem := BlockItem{*item}
-	return blockItem.ToBlock().(*blocks.OpenBlock)
-}
-
-func FetchBlock(hash types.BlockHash) (b blocks.Block) {
-	conn := getConn()
-	defer releaseConn(conn)
-	return fetchBlock(conn, hash)
-}
-
-func fetchBlock(conn *badger.Txn, hash types.BlockHash) (b blocks.Block) {
-	item, err := conn.Get(hash[:])
-	if err != nil {
-		return nil
-	}
-
-	blockItem := BlockItem{*item}
-	return blockItem.ToBlock()
-}
-
+/*
 func GetBalance(block blocks.Block) uint128.Uint128 {
 	conn := getConn()
 	defer releaseConn(conn)
@@ -321,9 +181,9 @@ func getBalance(conn *badger.Txn, block blocks.Block) uint128.Uint128 {
 	default:
 		panic("Unknown block type")
 	}
-
 }
-
+*/
+/*
 func StoreBlock(block blocks.Block) error {
 	conn := getConn()
 	defer releaseConn(conn)
@@ -407,4 +267,4 @@ func uncheckedStoreBlock(conn *badger.Txn, block blocks.Block) {
 	if err != nil {
 		panic("Failed to store block")
 	}
-}
+}*/

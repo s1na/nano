@@ -5,6 +5,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/frankh/nano/blocks"
+	"github.com/frankh/nano/config"
 	"github.com/frankh/nano/network"
 	"github.com/frankh/nano/rpc"
 	"github.com/frankh/nano/store"
@@ -22,12 +24,18 @@ type Node struct {
 	walletsCh chan *wallet.Wallet
 }
 
-func NewNode(conf *store.Config) *Node {
+func NewNode(conf *config.Config) *Node {
 	n := new(Node)
+
+	config.Conf = conf
+	blocks.GenesisBlock = blocks.LiveGenesisBlock
+	if conf.TestNet {
+		blocks.GenesisBlock = blocks.TestGenesisBlock
+	}
 
 	n.Net = network.NewNetwork()
 	n.alarms = make([]*Alarm, 1)
-	n.store = store.NewStore(conf)
+	n.store = store.NewStore(conf.DataDir)
 	n.wallets = make(map[string]*wallet.Wallet)
 	n.walletsCh = make(chan *wallet.Wallet)
 
@@ -85,7 +93,10 @@ func (n *Node) syncFromStore() error {
 	if err != nil {
 		return err
 	}
-
 	n.wallets = wallets
-	return nil
+
+	bs := blocks.NewBlockStore(n.store)
+	err = bs.Init()
+
+	return err
 }

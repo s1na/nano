@@ -6,7 +6,6 @@ import (
 
 	"github.com/frankh/crypto/ed25519"
 	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/store"
 	"github.com/frankh/nano/types"
 
 	"github.com/stretchr/testify/assert"
@@ -27,10 +26,10 @@ var keepAlive, _ = hex.DecodeString("524305050102000000000000000000000000FFFF49B
 var confirmAck, _ = hex.DecodeString("524305050105000289aaf8e5f19f60ebc9476f382dbee256deae2695b47934700d9aad49d86ccb249ceb5c2840fe3fdf2dcb9c40e142181e7bd158d07ca3f8388dc3b3c0acd395d85b38e04ce1dac45b070957046d31eb7f58caaa777a5e13d85fe2aae7514b490e9c1dd00100000000aef053ab1832d41df356290a704e6c6c47787c6da4710ee2399e60e0ab607e9e51380a2c22710ed4018392474228b4e7c80f1c6714dcc3c9ef4befa563ecc35905bd9a62bd5b7ebdc5ebc9f576392e00445a07742dc4b2bc1355aef245522b19ae5640985f7759954ebf5147a125fec7e9f1973cf1d2a9d182c9223392b4cc10cdb11bca27c455ec8b13f4482b506d02576cfad0046c5f1c")
 var confirmReq, _ = hex.DecodeString("52430505010400030c32f8cac423ec13236e09db435a18471ef39274959e6f8b44f005577614190e6e470adf874730bb15f067e04ec4ccd77426e69166a72d57d592a4e15eff1df97560262045e5a612c015205a5e73a53fe3775bd5809f6723641b31c7b103ebb30adc93932c7fba8c0a29d8ca1fb22514a2490552dcdb028401975cd8c9014b0fccd88343ef983eae")
 
-func TestHandleMessage(t *testing.T) {
+/*func TestHandleMessage(t *testing.T) {
 	store.Init(store.TestConfig)
 	NewNetwork().handleMessage("::1", publishTest)
-}
+}*/
 
 func TestReadWriteHeader(t *testing.T) {
 	h := new(Header)
@@ -119,7 +118,7 @@ func TestReadWritePublish(t *testing.T) {
 
 	block := m.ToBlock().(*blocks.OpenBlock)
 	assert.True(t, blocks.ValidateBlockWork(block))
-	assert.Equal(t, types.Account("xrb_14jyjetsh8p7jxx1of38ctsa779okt9d1pdnmtjpqiukuq8zugr3bxpxf1zu"), block.Account)
+	assert.Equal(t, "xrb_14jyjetsh8p7jxx1of38ctsa779okt9d1pdnmtjpqiukuq8zugr3bxpxf1zu", block.Account.String())
 }
 
 func validateTestBlock(t *testing.T, b blocks.Block, expectedHash types.BlockHash) {
@@ -139,7 +138,7 @@ func TestReadPublish(t *testing.T) {
 
 	m, ok := msg.Body.(*Publish)
 	require.True(t, ok)
-	h, err := types.NewBlockHash("687DCB9C8EB8AF9F39D8107C3432A8732EDBED1E3B5E2E0F6B86643D1EB5E24F")
+	h, err := types.BlockHashFromString("687DCB9C8EB8AF9F39D8107C3432A8732EDBED1E3B5E2E0F6B86643D1EB5E24F")
 	require.Nil(t, err)
 	validateTestBlock(t, m.ToBlock(), h)
 
@@ -148,7 +147,7 @@ func TestReadPublish(t *testing.T) {
 
 	m, ok = msg.Body.(*Publish)
 	require.True(t, ok)
-	h, _ = types.NewBlockHash("7D3E9D79342AA73B7148CB46706D23ED8BB0041A5316D67A053F336ABF0E6B60")
+	h, _ = types.BlockHashFromString("7D3E9D79342AA73B7148CB46706D23ED8BB0041A5316D67A053F336ABF0E6B60")
 	validateTestBlock(t, m.ToBlock(), h)
 
 	err = msg.Unmarshal(publishOpen)
@@ -156,7 +155,7 @@ func TestReadPublish(t *testing.T) {
 
 	m, ok = msg.Body.(*Publish)
 	require.True(t, ok)
-	h, _ = types.NewBlockHash("5F73CF212E58563734D57CCFCCEFE481DE40C96F097F594F4FA32C5585D84AA4")
+	h, _ = types.BlockHashFromString("5F73CF212E58563734D57CCFCCEFE481DE40C96F097F594F4FA32C5585D84AA4")
 	validateTestBlock(t, m.ToBlock(), h)
 
 	err = msg.Unmarshal(publishChange)
@@ -164,7 +163,7 @@ func TestReadPublish(t *testing.T) {
 
 	m, ok = msg.Body.(*Publish)
 	require.True(t, ok)
-	h, _ = types.NewBlockHash("4AABA9923AC794B635B8C3CC275C37F0D28E43D44EB5E27F8B23955E335D5DD3")
+	h, _ = types.BlockHashFromString("4AABA9923AC794B635B8C3CC275C37F0D28E43D44EB5E27F8B23955E335D5DD3")
 	validateTestBlock(t, m.ToBlock(), h)
 
 	err = msg.Unmarshal(publishWrongWork)

@@ -36,7 +36,7 @@ var walletCreateCmd = &cobra.Command{
 			return err
 		}
 
-		store := store.NewStore(&store.TestConfig)
+		store := store.NewStore(DataDir)
 		if err = store.Start(); err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ var walletImportCmd = &cobra.Command{
 		w.Seed = seed
 		w.Id = id
 
-		store := store.NewStore(&store.TestConfig)
+		store := store.NewStore(DataDir)
 		if err := store.Start(); err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ var walletGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
 
-		store := store.NewStore(&store.TestConfig)
+		store := store.NewStore(DataDir)
 		err := store.Start()
 		if err != nil {
 			return err
@@ -112,7 +112,7 @@ var walletListCmd = &cobra.Command{
 	Short: "List wallets",
 	Long:  `Display information about all locally stored wallets.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store := store.NewStore(&store.TestConfig)
+		store := store.NewStore(DataDir)
 		err := store.Start()
 		if err != nil {
 			return err

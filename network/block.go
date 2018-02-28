@@ -1,14 +1,11 @@
 package network
 
 import (
-	"encoding/hex"
 	"errors"
 
-	"github.com/frankh/nano/address"
 	"github.com/frankh/nano/blocks"
 	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/uint128"
-	"github.com/frankh/nano/utils"
 )
 
 const (
@@ -32,7 +29,7 @@ type Block struct {
 
 func (m *Block) ToBlock() blocks.Block {
 	common := blocks.CommonBlock{
-		Work:      types.Work(hex.EncodeToString(m.Work[:])),
+		Work:      types.Work(m.Work),
 		Signature: types.Signature(m.Signature),
 	}
 
@@ -40,7 +37,7 @@ func (m *Block) ToBlock() blocks.Block {
 	case sendBlock:
 		block := blocks.SendBlock{
 			types.BlockHash(m.Previous),
-			address.PubKeyToAddress(m.Destination[:]),
+			types.AccPub(m.Destination[:]),
 			uint128.FromBytes(m.Balance[:]),
 			common,
 		}
@@ -48,15 +45,15 @@ func (m *Block) ToBlock() blocks.Block {
 	case openBlock:
 		block := blocks.OpenBlock{
 			types.BlockHash(m.Source),
-			address.PubKeyToAddress(m.Representative[:]),
-			address.PubKeyToAddress(m.Account[:]),
+			types.AccPub(m.Representative[:]),
+			types.AccPub(m.Account[:]),
 			common,
 		}
 		return &block
 	case changeBlock:
 		block := blocks.ChangeBlock{
 			types.BlockHash(m.Previous),
-			address.PubKeyToAddress(m.Representative[:]),
+			types.AccPub(m.Representative[:]),
 			common,
 		}
 		return &block
@@ -85,7 +82,7 @@ func (m *Block) Unmarshal(data []byte) error {
 		copy(m.Destination[:], data[32:64])
 		copy(m.Balance[:], data[64:80])
 		copy(m.Signature[:], data[80:144])
-		copy(m.Work[:], utils.Reversed(data[144:152]))
+		copy(m.Work[:], data[144:152])
 	case openBlock:
 		if len(data) != openSize {
 			return invalidErr
@@ -95,7 +92,7 @@ func (m *Block) Unmarshal(data []byte) error {
 		copy(m.Representative[:], data[32:64])
 		copy(m.Account[:], data[64:96])
 		copy(m.Signature[:], data[96:160])
-		copy(m.Work[:], utils.Reversed(data[160:168]))
+		copy(m.Work[:], data[160:168])
 	case changeBlock:
 		if len(data) != changeSize {
 			return invalidErr
@@ -104,7 +101,7 @@ func (m *Block) Unmarshal(data []byte) error {
 		copy(m.Previous[:], data[:32])
 		copy(m.Representative[:], data[32:64])
 		copy(m.Signature[:], data[64:128])
-		copy(m.Work[:], utils.Reversed(data[128:136]))
+		copy(m.Work[:], data[128:136])
 	case receiveBlock:
 		if len(data) != receiveSize {
 			return invalidErr
@@ -113,7 +110,7 @@ func (m *Block) Unmarshal(data []byte) error {
 		copy(m.Previous[:], data[:32])
 		copy(m.Source[:], data[32:64])
 		copy(m.Signature[:], data[64:128])
-		copy(m.Work[:], utils.Reversed(data[128:136]))
+		copy(m.Work[:], data[128:136])
 	}
 
 	return nil
@@ -140,7 +137,7 @@ func (m *Block) Marshal() ([]byte, error) {
 	}
 
 	data = append(data, m.Signature[:]...)
-	data = append(data, utils.Reversed(m.Work[:])...)
+	data = append(data, m.Work[:]...)
 
 	return data, nil
 }

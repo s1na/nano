@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"net"
-	"path"
 
+	"github.com/frankh/nano/config"
 	"github.com/frankh/nano/network"
 	"github.com/frankh/nano/node"
-	"github.com/frankh/nano/store"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -14,7 +13,6 @@ import (
 
 var (
 	InitialPeer string
-	WorkDir     string
 	TestNet     bool
 	Verbose     bool
 )
@@ -22,7 +20,6 @@ var (
 func init() {
 	rootCmd.AddCommand(daemonCmd)
 	daemonCmd.Flags().StringVarP(&InitialPeer, "peer", "p", "::ffff:192.168.0.70", "Initial peer to make contact with")
-	daemonCmd.Flags().StringVarP(&WorkDir, "work-dir", "d", "", "Directory to put generated files, e.g. db.")
 	daemonCmd.Flags().BoolVarP(&TestNet, "testnet", "t", false, "Use test network configuration")
 	daemonCmd.Flags().BoolVarP(&Verbose, "verbose", "v", false, "Verbose mode")
 }
@@ -36,17 +33,15 @@ var daemonCmd = &cobra.Command{
 			log.SetLevel(log.DebugLevel)
 		}
 
-		var conf store.Config
+		conf := &config.Config{
+			DataDir: DataDir,
+		}
 		if TestNet {
 			log.Info("Using test network configuration")
-			store.TestConfig.Path = path.Join(WorkDir, store.TestConfig.Path)
-			conf = store.TestConfig
-		} else {
-			store.LiveConfig.Path = path.Join(WorkDir, store.LiveConfig.Path)
-			conf = store.LiveConfig
+			conf.TestNet = true
 		}
 
-		n := node.NewNode(&conf)
+		n := node.NewNode(conf)
 		initialPeer := network.Peer{
 			net.ParseIP(InitialPeer),
 			7075,

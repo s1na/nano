@@ -10,8 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ()
-
 func init() {
 	rootCmd.AddCommand(accountCmd)
 	accountCmd.AddCommand(accountCreateCmd)
@@ -32,7 +30,7 @@ var accountCreateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		wid := args[0]
 
-		store := store.NewStore(&store.TestConfig)
+		store := store.NewStore(DataDir)
 		if err := store.Start(); err != nil {
 			return err
 		}
@@ -62,7 +60,7 @@ var accountGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		addr := args[0]
 
-		store := store.NewStore(&store.TestConfig)
+		store := store.NewStore(DataDir)
 		if err := store.Start(); err != nil {
 			return err
 		}

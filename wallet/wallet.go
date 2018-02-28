@@ -7,7 +7,7 @@ import (
 
 	"github.com/frankh/crypto/ed25519"
 	"github.com/frankh/nano/account"
-	"github.com/frankh/nano/address"
+	"github.com/frankh/nano/types"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -64,7 +64,7 @@ func (w *Wallet) GenerateID() error {
 func (w *Wallet) NewAccount() *account.Account {
 	a := account.NewAccount()
 
-	pub, prv := address.KeypairFromSeed(w.Seed, uint32(len(w.Accounts)))
+	pub, prv, _ := types.KeypairFromSeed(w.Seed, uint32(len(w.Accounts)))
 	a.PublicKey = pub
 	a.PrivateKey = prv
 	w.Accounts[string(a.Address())] = a

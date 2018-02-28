@@ -5,21 +5,21 @@ import (
 )
 
 type ReceiveBlock struct {
-	PreviousHash types.BlockHash
-	SourceHash   types.BlockHash
+	Previous types.BlockHash
+	Source   types.BlockHash
 	CommonBlock
 }
 
 func (b *ReceiveBlock) Hash() types.BlockHash {
-	return HashReceive(b.PreviousHash, b.SourceHash)
+	return HashReceive(b.Previous, b.Source)
 }
 
-func (b *ReceiveBlock) PreviousBlockHash() types.BlockHash {
-	return b.PreviousHash
+func (b *ReceiveBlock) GetPrevious() types.BlockHash {
+	return b.Previous
 }
 
-func (b *ReceiveBlock) RootHash() types.BlockHash {
-	return b.PreviousHash
+func (b *ReceiveBlock) GetRoot() types.BlockHash {
+	return b.Previous
 }
 
 func (*ReceiveBlock) Type() BlockType {

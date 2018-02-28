@@ -6,8 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/frankh/crypto/ed25519"
-	"github.com/frankh/nano/address"
+	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/wallet"
 
 	"github.com/tidwall/gjson"
@@ -67,7 +66,7 @@ func accountGet(w http.ResponseWriter, body *gjson.Result) {
 		return
 	}
 
-	res["account"] = string(address.PubKeyToAddress(ed25519.PublicKey(pubBytes)))
+	res["account"] = types.AccPub(pubBytes).String()
 	json.NewEncoder(w).Encode(res)
 }
 

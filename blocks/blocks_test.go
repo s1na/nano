@@ -1,11 +1,9 @@
 package blocks
 
 import (
-	"encoding/hex"
 	"testing"
 
-	"github.com/frankh/nano/address"
-	"github.com/frankh/nano/utils"
+	"github.com/frankh/nano/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,38 +21,39 @@ func TestSignMessage(t *testing.T) {
 		"signature":      "ECDA914373A2F0CA1296475BAEE40500A7F0A7AD72A5A80C81D7FAB7F6C802B2CC7DB50F5DD0FB25B2EF11761FA7344A158DD5A700B21BD47DE5BD0F63153A02"
 	}`))
 
-	sig := SignMessage(testPrv, block.Hash().Slice())
+	sig, err := SignMessage(testPrv, block.Hash().Slice())
+	require.Nil(t, err)
 	assert.EqualValues(t, sig, block.GetSignature())
 }
 
+func TestHashOpen(t *testing.T) {
+	assert.Equal(t, LiveGenesisBlockHash, LiveGenesisBlock.Hash())
+}
+
 func TestGenerateWork(t *testing.T) {
-	WorkThreshold = 0xfff0000000000000
+	types.WorkThreshold = 0xfff0000000000000
 	GenerateWork(LiveGenesisBlock)
 }
 
 func BenchmarkGenerateWork(b *testing.B) {
-	WorkThreshold = 0xfff0000000000000
+	types.WorkThreshold = 0xfff0000000000000
 	for n := 0; n < b.N; n++ {
 		GenerateWork(LiveGenesisBlock)
 	}
 }
 
 func TestValidateWork(t *testing.T) {
-	WorkThreshold = 0xffffffc000000000
+	types.WorkThreshold = 0xffffffc000000000
 
-	liveBlockHash, _ := address.AddressToPub(LiveGenesisBlock.Account)
-	liveWorkBytes, _ := hex.DecodeString(string(LiveGenesisBlock.Work))
-	liveBadWork, _ := hex.DecodeString("0000000000000000")
+	liveBlockHash := LiveGenesisBlock.Account
+	liveWork := LiveGenesisBlock.Work
+	liveBadWork, _ := types.WorkFromString("0000000000000000")
 
 	var lbh [32]byte
 	copy(lbh[:], liveBlockHash)
 
 	require.True(t, ValidateBlockWork(LiveGenesisBlock))
 	// A bit of a redundandy test to ensure ValidateBlockWork is correct
-	assert.True(t, ValidateWork(lbh, utils.Reversed(liveWorkBytes)))
-	assert.False(t, ValidateWork(lbh, liveBadWork))
-}
-
-func TestHashOpen(t *testing.T) {
-	assert.Equal(t, LiveGenesisBlockHash, LiveGenesisBlock.Hash())
+	assert.True(t, liveWork.Validate(lbh))
+	assert.False(t, liveBadWork.Validate(lbh))
 }

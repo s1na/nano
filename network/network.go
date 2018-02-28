@@ -5,8 +5,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/frankh/nano/store"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -98,9 +96,9 @@ func (n *Network) handleMessage(source string, data []byte) {
 			n.AddPeer(peer)
 		}
 	case *Publish:
-		store.StoreBlock(m.ToBlock())
+		//store.StoreBlock(m.ToBlock())
 	case *ConfirmAck:
-		store.StoreBlock(m.ToBlock())
+		//store.StoreBlock(m.ToBlock())
 	}
 
 	return
