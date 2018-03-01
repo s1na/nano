@@ -13,7 +13,7 @@ const (
 	openSize    = 32 + 32 + 32 + 64 + 8
 	changeSize  = 32 + 32 + 64 + 8
 	receiveSize = 32 + 32 + 64 + 8
-	utxSize     = 32 + 32 + 32 + 16 + 16 + 64 + 64 + 8
+	utxSize     = 32 + 32 + 32 + 16 + 16 + 32 + 64 + 8
 )
 
 type Block struct {
@@ -23,7 +23,9 @@ type Block struct {
 	Destination    [32]byte
 	Representative [32]byte
 	Account        [32]byte
+	Link           [32]byte
 	Balance        [16]byte
+	Amount         [16]byte
 	Signature      [64]byte
 	Work           [8]byte
 }
@@ -67,8 +69,15 @@ func (m *Block) ToBlock() blocks.Block {
 		return &block
 	case utxBlock:
 		block := blocks.UtxBlock{
+			types.AccPub(m.Account[:]),
+			types.BlockHash(m.Previous),
+			types.AccPub(m.Representative[:]),
+			uint128.FromBytes(m.Balance[:]),
+			uint128.FromBytes(m.Amount[:]),
+			types.AccPub(m.Link[:]),
 			common,
 		}
+		return &block
 	default:
 		return nil
 	}
@@ -126,7 +135,7 @@ func (m *Block) Unmarshal(data []byte) error {
 		copy(m.Representative[:], data[64:96])
 		copy(m.Balance[:], data[96:112])
 		copy(m.Amount[:], data[112:128])
-		copy(m.Link[:], data[128:192])
+		copy(m.Link[:], data[128:160])
 	}
 
 	return nil

@@ -1,8 +1,10 @@
 package blocks
 
 import (
-	"github.com/frankh/crypto/ed25519"
 	"github.com/frankh/nano/types"
+	"github.com/frankh/nano/uint128"
+
+	"github.com/frankh/crypto/ed25519"
 )
 
 type UtxBlock struct {
@@ -11,7 +13,7 @@ type UtxBlock struct {
 	Representative types.AccPub
 	Balance        uint128.Uint128
 	Amount         uint128.Uint128
-	Link           [64]byte
+	Link           types.AccPub
 	CommonBlock
 }
 
@@ -26,11 +28,11 @@ func (b *UtxBlock) GetPrevious() types.BlockHash {
 
 func (b *UtxBlock) GetRoot() types.BlockHash {
 	root := b.Previous
-	if root.isZero() {
-		root = b.Account
+	if root.IsZero() {
+		root = types.BlockHashFromSlice(b.Account[:])
 	}
 
-	return types.BlockHashFromSlice(root)
+	return root
 }
 
 func (b *UtxBlock) Type() BlockType {
@@ -43,9 +45,9 @@ func (b *UtxBlock) VerifySignature() (bool, error) {
 
 func (b *UtxBlock) IsSend() bool {
 	// TODO: (amount.bytes [0] & 0x80) == 0x80;
-	return b.Amount != 0
+	return b.Amount.Hi != 0 && b.Amount.Lo != 0
 }
 
 func HashUtx(account types.AccPub, prev types.BlockHash, repr types.AccPub, balance uint128.Uint128, amount uint128.Uint128, link types.AccPub) types.BlockHash {
-	return HashBytes(account, prev, repr, balance, amount, link)
+	return HashBytes(account, prev[:], repr, balance.GetBytes(), amount.GetBytes(), link)
 }

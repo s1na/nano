@@ -29,6 +29,16 @@ func BlockHashFromSlice(data []byte) BlockHash {
 	return h
 }
 
+func (h BlockHash) IsZero() bool {
+	for _, v := range h {
+		if v != 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (h BlockHash) Sign(prv ed25519.PrivateKey) Signature {
 	return SignatureFromSlice(ed25519.Sign(prv, h[:]))
 }
