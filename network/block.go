@@ -13,6 +13,7 @@ const (
 	openSize    = 32 + 32 + 32 + 64 + 8
 	changeSize  = 32 + 32 + 64 + 8
 	receiveSize = 32 + 32 + 64 + 8
+	utxSize     = 32 + 32 + 32 + 16 + 16 + 64 + 64 + 8
 )
 
 type Block struct {
@@ -64,6 +65,10 @@ func (m *Block) ToBlock() blocks.Block {
 			common,
 		}
 		return &block
+	case utxBlock:
+		block := blocks.UtxBlock{
+			common,
+		}
 	default:
 		return nil
 	}
@@ -111,6 +116,17 @@ func (m *Block) Unmarshal(data []byte) error {
 		copy(m.Source[:], data[32:64])
 		copy(m.Signature[:], data[64:128])
 		copy(m.Work[:], data[128:136])
+	case utxBlock:
+		if len(data) != utxSize {
+			return invalidErr
+		}
+
+		copy(m.Account[:], data[:32])
+		copy(m.Previous[:], data[32:64])
+		copy(m.Representative[:], data[64:96])
+		copy(m.Balance[:], data[96:112])
+		copy(m.Amount[:], data[112:128])
+		copy(m.Link[:], data[128:192])
 	}
 
 	return nil
@@ -134,6 +150,13 @@ func (m *Block) Marshal() ([]byte, error) {
 	case receiveBlock:
 		data = append(data, m.Previous[:]...)
 		data = append(data, m.Source[:]...)
+	case utxBlock:
+		data = append(data, m.Account[:]...)
+		data = append(data, m.Previous[:]...)
+		data = append(data, m.Representative[:]...)
+		data = append(data, m.Balance[:]...)
+		data = append(data, m.Amount[:]...)
+		data = append(data, m.Link[:]...)
 	}
 
 	data = append(data, m.Signature[:]...)

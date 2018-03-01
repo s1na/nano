@@ -37,6 +37,7 @@ const (
 	receiveBlock
 	openBlock
 	changeBlock
+	utxBlock
 )
 
 type MessagePart interface {

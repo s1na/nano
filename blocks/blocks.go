@@ -48,6 +48,7 @@ const (
 	Receive           = "receive"
 	Send              = "send"
 	Change            = "change"
+	Utx               = "utx"
 )
 
 type Block interface {
