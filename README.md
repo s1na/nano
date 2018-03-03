@@ -10,58 +10,16 @@ A crypto currency has to be resilient to survive, and the network is only as res
 
 Additionally, there is no reference specification for the Nano protocol, only a high level overview. I've had to learn the protocol from reading the source-code. I'm hoping a second implementation will be useful for others to learn the protocol.
 
-Components
-----------
-
-Eventually the project will contain the following components:
-
- * [GoNano](https://github.com/frankh/nano)
-    > A support library containing common functions, e.g. block validation, hashing, proof of work, etc
- * [Nano Vanity](https://github.com/frankh/nano-vanity)
-    > A tool to generate vanity addresses (See https://en.bitcoin.it/wiki/Vanitygen)
- * [GoNano Node](#) - Coming Soon...
-    > A full node implementation compatible with the official Nano wallet, but with faster initial sync times out of the box.
- * [GoNano Wallet](#) - Coming Soon...
-    > A GUI Wallet that can either run as a node or as a light wallet.
-
-Milestones
-----------
-
-  * ~Vanity Address Generator~
-    > A simple project to get the basic public-key cryptography functions working and tested.
-    - Done! ([Nano Vanity](https://github.com/frankh/nano-vanity))
-  * GoNano Node
-    * A basic node that can validate and store blocks sent to it
-        * ~Data structures~
-        * ~Database~
-        * ~Proof of work~
-        * ~Cryptographic functions~
-        * ~Basic wallet functions~
-        * Networking
-            * ~Receiving keepalives and blocks~
-                - ~keepalives~
-                - ~publish~
-                - ~confirm_ack~
-            * Sending keepalives
-    * Add broadcasting and discovery
-    * Add RPC interface
-    * Add voting
-    * Add compatibility with existing Nano Nodes
-    * Add spam defence and blacklisting of bad nodes
-    * Add complete testing harness
-    * Add fast syncing
-  * GoNano Wallet
-    * Basic UI, creating/sending/receiving transactions
-    * Add seed restore, account generation, changing representatives
-    * Add bundled node and light wallet/node selection option
-    * UI Polish and distributables
+Status
+------
+This software is in early development phase, and therefore is not suitable for use. We'll appreciate it however if you fetch yourself a clone, and start testing it (using `--testnet` flag).
 
 Contributing
 ============
 
-Any pull requests would be welcome!
+Any contribution towards the advancement of Nano is much appreciated. If you see bugs, or room for improvement, please do jump in and make a pull request. We will also appreciate it if you communicate to us any comments or criticism regarding the project.
 
-I haven't been using Go for very long so any style/organisation fixes would be greatly appreciated.
+Credits
+=======
 
-Feel free to donate some Nano to xrb_1frankh36p3e4cy4xrtj79d5rmcgce9wh4zke366gik19gifb5kxcnoju3y5 to help keep me motivated :beers:
-
+This is a fork of [nano](https://github.com/frankh/nano). Kudos to him for starting this project. Also check out his [vanity address generator](https://github.com/frankh/nano-vanity) to generate a cool address for yourself :)
