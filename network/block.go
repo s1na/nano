@@ -3,9 +3,9 @@ package network
 import (
 	"errors"
 
-	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/types"
-	"github.com/frankh/nano/uint128"
+	"github.com/s1na/nano/blocks"
+	"github.com/s1na/nano/types"
+	"github.com/s1na/nano/uint128"
 )
 
 const (

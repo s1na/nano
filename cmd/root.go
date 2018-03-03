@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/frankh/nano/config"
+	"github.com/s1na/nano/config"
 
 	"github.com/spf13/cobra"
 )

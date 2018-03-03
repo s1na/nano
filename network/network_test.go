@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/frankh/crypto/ed25519"
-	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/types"
+	"github.com/s1na/nano/blocks"
+	"github.com/s1na/nano/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/frankh/nano/utils"
+	"github.com/s1na/nano/utils"
 
 	"github.com/golang/crypto/blake2b"
 )

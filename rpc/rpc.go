@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/store"
-	"github.com/frankh/nano/wallet"
+	"github.com/s1na/nano/blocks"
+	"github.com/s1na/nano/store"
+	"github.com/s1na/nano/wallet"
 
 	log "github.com/sirupsen/logrus"
 )

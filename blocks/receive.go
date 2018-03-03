@@ -1,7 +1,7 @@
 package blocks
 
 import (
-	"github.com/frankh/nano/types"
+	"github.com/s1na/nano/types"
 )
 
 type ReceiveBlock struct {

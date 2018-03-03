@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/frankh/nano/store"
+	"github.com/s1na/nano/store"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

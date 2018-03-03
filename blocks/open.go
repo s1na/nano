@@ -2,7 +2,7 @@ package blocks
 
 import (
 	"github.com/frankh/crypto/ed25519"
-	"github.com/frankh/nano/types"
+	"github.com/s1na/nano/types"
 )
 
 type OpenBlock struct {

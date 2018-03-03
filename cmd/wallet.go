@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/frankh/nano/store"
-	"github.com/frankh/nano/types"
-	"github.com/frankh/nano/wallet"
+	"github.com/s1na/nano/store"
+	"github.com/s1na/nano/types"
+	"github.com/s1na/nano/wallet"
 
 	"github.com/spf13/cobra"
 )

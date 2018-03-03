@@ -1,9 +1,9 @@
 package ledger
 
 import (
-	"github.com/frankh/nano/account"
-	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/store"
+	"github.com/s1na/nano/account"
+	"github.com/s1na/nano/blocks"
+	"github.com/s1na/nano/store"
 
 	"github.com/dgraph-io/badger"
 	log "github.com/sirupsen/logrus"

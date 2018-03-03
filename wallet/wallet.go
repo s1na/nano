@@ -3,7 +3,7 @@ package wallet
 import (
 	"encoding/json"
 
-	"github.com/frankh/nano/types"
+	"github.com/s1na/nano/types"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"

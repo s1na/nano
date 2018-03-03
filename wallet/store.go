@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 
-	"github.com/frankh/nano/store"
-	"github.com/frankh/nano/types"
+	"github.com/s1na/nano/store"
+	"github.com/s1na/nano/types"
 )
 
 type WalletStore struct {

@@ -3,10 +3,10 @@ package account
 import (
 /*	"testing"
 
-	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/store"
-	"github.com/frankh/nano/types"
-	"github.com/frankh/nano/uint128"
+	"github.com/s1na/nano/blocks"
+	"github.com/s1na/nano/store"
+	"github.com/s1na/nano/types"
+	"github.com/s1na/nano/uint128"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"*/

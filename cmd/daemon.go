@@ -3,9 +3,9 @@ package cmd
 import (
 	"net"
 
-	"github.com/frankh/nano/config"
-	"github.com/frankh/nano/network"
-	"github.com/frankh/nano/node"
+	"github.com/s1na/nano/config"
+	"github.com/s1na/nano/network"
+	"github.com/s1na/nano/node"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

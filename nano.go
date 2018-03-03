@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/frankh/nano/cmd"
+	"github.com/s1na/nano/cmd"
 )
 
 func main() {

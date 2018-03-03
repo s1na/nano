@@ -3,8 +3,8 @@ package blocks
 import (
 	"encoding/json"
 
-	"github.com/frankh/nano/types"
-	"github.com/frankh/nano/uint128"
+	"github.com/s1na/nano/types"
+	"github.com/s1na/nano/uint128"
 
 	"github.com/golang/crypto/blake2b"
 	"github.com/pkg/errors"

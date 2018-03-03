@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/frankh/nano/account"
-	"github.com/frankh/nano/store"
-	"github.com/frankh/nano/types"
-	"github.com/frankh/nano/wallet"
+	"github.com/s1na/nano/account"
+	"github.com/s1na/nano/store"
+	"github.com/s1na/nano/types"
+	"github.com/s1na/nano/wallet"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"

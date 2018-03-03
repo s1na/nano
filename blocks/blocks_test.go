@@ -3,7 +3,7 @@ package blocks
 import (
 	"testing"
 
-	"github.com/frankh/nano/types"
+	"github.com/s1na/nano/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

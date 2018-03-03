@@ -5,13 +5,13 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/frankh/nano/blocks"
-	"github.com/frankh/nano/config"
-	"github.com/frankh/nano/ledger"
-	"github.com/frankh/nano/network"
-	"github.com/frankh/nano/rpc"
-	"github.com/frankh/nano/store"
-	"github.com/frankh/nano/wallet"
+	"github.com/s1na/nano/blocks"
+	"github.com/s1na/nano/config"
+	"github.com/s1na/nano/ledger"
+	"github.com/s1na/nano/network"
+	"github.com/s1na/nano/rpc"
+	"github.com/s1na/nano/store"
+	"github.com/s1na/nano/wallet"
 
 	log "github.com/sirupsen/logrus"
 )

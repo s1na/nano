@@ -1,8 +1,8 @@
 package blocks
 
 import (
-	"github.com/frankh/nano/types"
-	"github.com/frankh/nano/uint128"
+	"github.com/s1na/nano/types"
+	"github.com/s1na/nano/uint128"
 )
 
 type SendBlock struct {
