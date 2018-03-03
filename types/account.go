@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/frankh/crypto/ed25519"
-	"github.com/s1na/nano/utils"
 
 	"github.com/golang/crypto/blake2b"
 	"github.com/pkg/errors"
@@ -112,7 +111,7 @@ func (a PubKey) Checksum() []byte {
 	}
 
 	hash.Write(a)
-	return utils.Reversed(hash.Sum(nil))
+	return Reversed(hash.Sum(nil))
 }
 
 func (a PubKey) Equal(o PubKey) bool {

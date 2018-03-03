@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/s1na/nano/utils"
-
 	"github.com/golang/crypto/blake2b"
 )
 
@@ -46,7 +44,7 @@ func WorkFromString(s string) (Work, error) {
 		return w, err
 	}
 
-	copy(w[:], utils.Reversed(b))
+	copy(w[:], Reversed(b))
 
 	return w, nil
 }
@@ -84,7 +82,7 @@ func (w Work) Slice() []byte {
 }
 
 func (w Work) String() string {
-	return strings.ToUpper(hex.EncodeToString(utils.Reversed(w[:])))
+	return strings.ToUpper(hex.EncodeToString(Reversed(w[:])))
 }
 
 func (w *Work) UnmarshalJSON(data []byte) error {

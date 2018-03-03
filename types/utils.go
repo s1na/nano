@@ -1,4 +1,4 @@
-package utils
+package types
 
 func Reversed(str []byte) (result []byte) {
 	for i := len(str) - 1; i >= 0; i-- {

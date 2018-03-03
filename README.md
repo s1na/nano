@@ -15,11 +15,11 @@ Status
 This software is in early development phase, and therefore is not suitable for use. We'll appreciate it however if you fetch yourself a clone, and start testing it (using `--testnet` flag).
 
 Contributing
-============
+------------
 
 Any contribution towards the advancement of Nano is much appreciated. If you see bugs, or room for improvement, please do jump in and make a pull request. We will also appreciate it if you communicate to us any comments or criticism regarding the project.
 
 Credits
-=======
+-------
 
-This is a fork of [nano](https://github.com/frankh/nano). Kudos to him for starting this project. Also check out his [vanity address generator](https://github.com/frankh/nano-vanity) to generate a cool address for yourself :)
+This is a fork of [frankh](https://github.com/frankh/nano) repository. Kudos to him for starting this project. Also check out his [vanity address generator](https://github.com/frankh/nano-vanity) to generate a cool address for yourself :)
