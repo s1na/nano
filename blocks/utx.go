@@ -8,12 +8,12 @@ import (
 )
 
 type UtxBlock struct {
-	Account        types.AccPub
+	Account        types.PubKey
 	Previous       types.BlockHash
-	Representative types.AccPub
+	Representative types.PubKey
 	Balance        uint128.Uint128
 	Amount         uint128.Uint128
-	Link           types.AccPub
+	Link           types.PubKey
 	CommonBlock
 }
 
@@ -48,6 +48,6 @@ func (b *UtxBlock) IsSend() bool {
 	return b.Amount.Hi != 0 && b.Amount.Lo != 0
 }
 
-func HashUtx(account types.AccPub, prev types.BlockHash, repr types.AccPub, balance uint128.Uint128, amount uint128.Uint128, link types.AccPub) types.BlockHash {
+func HashUtx(account types.PubKey, prev types.BlockHash, repr types.PubKey, balance uint128.Uint128, amount uint128.Uint128, link types.PubKey) types.BlockHash {
 	return HashBytes(account, prev[:], repr, balance.GetBytes(), amount.GetBytes(), link)
 }

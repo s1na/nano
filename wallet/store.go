@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 
-	"github.com/frankh/nano/account"
 	"github.com/frankh/nano/store"
+	"github.com/frankh/nano/types"
 )
 
 type WalletStore struct {
@@ -27,11 +27,11 @@ func (s *WalletStore) SetWallet(w *Wallet) error {
 		return err
 	}
 
-	return s.s.Set([]byte("wallet:"+w.Id), buf.Bytes())
+	return s.s.Set(append([]byte("wallet:"), w.Id...), buf.Bytes())
 }
 
-func (s *WalletStore) GetWallet(id string) (*Wallet, error) {
-	v, err := s.s.Get([]byte("wallet:" + id))
+func (s *WalletStore) GetWallet(id types.PubKey) (*Wallet, error) {
+	v, err := s.s.Get(append([]byte("wallet:"), id...))
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (s *WalletStore) GetWallets() (map[string]*Wallet, error) {
 	return wallets, nil
 }
 
-func (s *WalletStore) GetAccount(addr string) (*account.Account, error) {
+/*func (s *WalletStore) GetAccount(addr string) (*account.Account, error) {
 	wallets, err := s.GetWallets()
 	if err != nil {
 		return nil, err
@@ -82,4 +82,4 @@ func (s *WalletStore) GetAccount(addr string) (*account.Account, error) {
 	}
 
 	return nil, nil
-}
+}*/

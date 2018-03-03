@@ -118,7 +118,7 @@ func TestReadWritePublish(t *testing.T) {
 
 	block := m.ToBlock().(*blocks.OpenBlock)
 	assert.True(t, blocks.ValidateBlockWork(block))
-	assert.Equal(t, "xrb_14jyjetsh8p7jxx1of38ctsa779okt9d1pdnmtjpqiukuq8zugr3bxpxf1zu", block.Account.String())
+	assert.Equal(t, "xrb_14jyjetsh8p7jxx1of38ctsa779okt9d1pdnmtjpqiukuq8zugr3bxpxf1zu", block.Account.Address())
 }
 
 func validateTestBlock(t *testing.T, b blocks.Block, expectedHash types.BlockHash) {

@@ -7,7 +7,7 @@ import (
 
 type SendBlock struct {
 	Previous    types.BlockHash
-	Destination types.AccPub
+	Destination types.PubKey
 	Balance     uint128.Uint128
 	CommonBlock
 }
@@ -28,7 +28,7 @@ func (*SendBlock) Type() BlockType {
 	return Send
 }
 
-func HashSend(previous types.BlockHash, destination types.AccPub, balance uint128.Uint128) types.BlockHash {
+func HashSend(previous types.BlockHash, destination types.PubKey, balance uint128.Uint128) types.BlockHash {
 	balanceBytes := balance.GetBytes()
 	return HashBytes(previous[:], destination, balanceBytes)
 }

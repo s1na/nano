@@ -7,6 +7,7 @@ import (
 
 	"github.com/frankh/nano/blocks"
 	"github.com/frankh/nano/config"
+	"github.com/frankh/nano/ledger"
 	"github.com/frankh/nano/network"
 	"github.com/frankh/nano/rpc"
 	"github.com/frankh/nano/store"
@@ -20,8 +21,10 @@ type Node struct {
 	alarms    []*Alarm
 	store     *store.Store
 	rpc       *rpc.Server
+	ledger    *ledger.Ledger
 	wallets   map[string]*wallet.Wallet
 	walletsCh chan *wallet.Wallet
+	blocksCh  chan blocks.Block
 }
 
 func NewNode(conf *config.Config) *Node {
@@ -34,10 +37,12 @@ func NewNode(conf *config.Config) *Node {
 	}
 
 	n.Net = network.NewNetwork()
-	n.alarms = make([]*Alarm, 1)
 	n.store = store.NewStore(conf.DataDir)
+	n.ledger = ledger.NewLedger(n.store)
+	n.alarms = make([]*Alarm, 1)
 	n.wallets = make(map[string]*wallet.Wallet)
 	n.walletsCh = make(chan *wallet.Wallet)
+	n.blocksCh = make(chan blocks.Block)
 
 	return n
 }
@@ -52,9 +57,13 @@ func (n *Node) Start() {
 		log.Fatal(err)
 	}
 
+	if err := n.ledger.Init(); err != nil {
+		log.Fatal(err)
+	}
+
 	n.alarms[0] = NewAlarm(AlarmFn(n.Net.SendKeepAlives), []interface{}{}, 20*time.Second)
 	n.Net.ListenForUdp()
-	n.rpc = rpc.NewServer(n.store, n.walletsCh)
+	n.rpc = rpc.NewServer(n.store, n.walletsCh, n.blocksCh)
 	n.rpc.Start()
 
 	n.loop()
@@ -80,7 +89,12 @@ func (n *Node) loop() {
 			return
 		case w := <-n.walletsCh:
 			log.WithFields(log.Fields{"wallet": w.Id}).Info("Adding wallet to node")
-			n.wallets[w.Id] = w
+			n.wallets[w.Id.Hex()] = w
+		case b := <-n.blocksCh:
+			err := n.ledger.AddBlock(b)
+			if err != nil {
+				log.WithFields(log.Fields{"block": b.Hash(), "err": err.Error()}).Warn("Failed adding block to ledger")
+			}
 		}
 	}
 
@@ -95,8 +109,5 @@ func (n *Node) syncFromStore() error {
 	}
 	n.wallets = wallets
 
-	bs := blocks.NewBlockStore(n.store)
-	err = bs.Init()
-
-	return err
+	return nil
 }

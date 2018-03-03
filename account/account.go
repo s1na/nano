@@ -3,18 +3,17 @@ package account
 import (
 	"encoding/json"
 
-	"github.com/frankh/nano/blocks"
 	"github.com/frankh/nano/types"
-
-	"github.com/frankh/crypto/ed25519"
+	"github.com/frankh/nano/uint128"
 )
 
 type Account struct {
-	PrivateKey ed25519.PrivateKey
-	PublicKey  ed25519.PublicKey
-	Head       blocks.Block
-	Work       *types.Work
-	powCh      chan types.Work
+	PrivateKey types.PrvKey
+	PublicKey  types.PubKey
+	Head       types.BlockHash
+	Rep        types.PubKey
+	Open       types.BlockHash
+	Balance    uint128.Uint128
 }
 
 func NewAccount() *Account {
@@ -24,7 +23,7 @@ func NewAccount() *Account {
 }
 
 func (a *Account) Address() string {
-	return types.AccPub(a.PublicKey).String()
+	return a.PublicKey.Address()
 }
 
 func (a *Account) String() string {
@@ -37,20 +36,21 @@ func (a *Account) String() string {
 }
 
 func (a *Account) Sign(data []byte) types.Signature {
-	return types.SignatureFromSlice(ed25519.Sign(a.PrivateKey, data))
+	return a.PrivateKey.Sign(data)
 }
 
+/*
 func (a *Account) GeneratePoW() types.Work {
 	var work types.Work
 
-	if a.Head == nil {
+	if a.Head.IsZero() {
 		work = types.GenerateWorkForHash(types.BlockHashFromSlice(a.PublicKey[:]))
 	} else {
 		work = blocks.GenerateWork(a.Head)
 	}
 
 	return work
-}
+}*/
 
 /*
 func New(private string) (Account, error) {
@@ -61,7 +61,7 @@ func New(private string) (Account, error) {
 		return a, err
 	}
 
-	open := store.FetchOpen(types.AccPub(a.PublicKey))
+	open := store.FetchOpen(types.PubKey(a.PublicKey))
 	if open != nil {
 		a.Head = open
 	}
@@ -77,7 +77,7 @@ func (a *Account) GetBalance() uint128.Uint128 {
 	return store.GetBalance(a.Head)
 }
 
-func (a *Account) Open(source types.BlockHash, representative types.AccPub) (*blocks.OpenBlock, error) {
+func (a *Account) Open(source types.BlockHash, representative types.PubKey) (*blocks.OpenBlock, error) {
 	if a.Head != nil {
 		return nil, errors.Errorf("Cannot open a non empty account")
 	}
@@ -86,7 +86,7 @@ func (a *Account) Open(source types.BlockHash, representative types.AccPub) (*bl
 		return nil, errors.Errorf("No PoW")
 	}
 
-	existing := store.FetchOpen(types.AccPub(a.PublicKey))
+	existing := store.FetchOpen(types.PubKey(a.PublicKey))
 	if existing != nil {
 		return nil, errors.Errorf("Cannot open account, open block already exists")
 	}
@@ -103,7 +103,7 @@ func (a *Account) Open(source types.BlockHash, representative types.AccPub) (*bl
 	block := blocks.OpenBlock{
 		source,
 		representative,
-		types.AccPub(a.PublicKey),
+		types.PubKey(a.PublicKey),
 		common,
 	}
 
@@ -117,7 +117,7 @@ func (a *Account) Open(source types.BlockHash, representative types.AccPub) (*bl
 	return &block, nil
 }
 
-func (a *Account) Send(destination types.AccPub, amount uint128.Uint128) (*blocks.SendBlock, error) {
+func (a *Account) Send(destination types.PubKey, amount uint128.Uint128) (*blocks.SendBlock, error) {
 	if a.Head == nil {
 		return nil, errors.Errorf("Cannot send from empty account")
 	}
@@ -166,7 +166,7 @@ func (a *Account) Receive(source types.BlockHash) (*blocks.ReceiveBlock, error) 
 		return nil, errors.Errorf("Source block is not a send")
 	}
 
-	if !sendBlock.(*blocks.SendBlock).Destination.Equal(types.AccPubFromSlice(a.PublicKey)) {
+	if !sendBlock.(*blocks.SendBlock).Destination.Equal(types.PubKeyFromSlice(a.PublicKey)) {
 		return nil, errors.Errorf("Send is not for this account")
 	}
 
@@ -186,7 +186,7 @@ func (a *Account) Receive(source types.BlockHash) (*blocks.ReceiveBlock, error) 
 	return &block, nil
 }
 
-func (a *Account) Change(representative types.AccPub) (*blocks.ChangeBlock, error) {
+func (a *Account) Change(representative types.PubKey) (*blocks.ChangeBlock, error) {
 	if a.Head == nil {
 		return nil, errors.Errorf("Cannot change on empty account")
 	}

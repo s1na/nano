@@ -6,7 +6,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"reflect"
+	"strings"
 
 	"github.com/frankh/crypto/ed25519"
 	"github.com/frankh/nano/utils"
@@ -20,18 +22,20 @@ const EncodeXrb = "13456789abcdefghijkmnopqrstuwxyz"
 var XrbEncoding = base32.NewEncoding(EncodeXrb)
 
 func ValidateAddress(addr string) bool {
-	_, err := AccPubFromString(addr)
+	_, err := PubKeyFromAddress(addr)
 	return err == nil
 }
 
-func KeypairFromPrivateKey(prvStr string) (ed25519.PublicKey, ed25519.PrivateKey, error) {
-	prvBytes, _ := hex.DecodeString(prvStr)
-	pub, prv, err := ed25519.GenerateKey(bytes.NewReader(prvBytes))
-
-	return pub, prv, err
+func GenerateKey(rd io.Reader) (PubKey, PrvKey, error) {
+	pub, prv, err := ed25519.GenerateKey(rd)
+	return PubKey(pub), PrvKey(prv), err
 }
 
-func KeypairFromSeed(seed string, index uint32) (ed25519.PublicKey, ed25519.PrivateKey, error) {
+func KeypairFromPrvKey(key PrvKey) (PubKey, PrvKey, error) {
+	return GenerateKey(bytes.NewReader(key))
+}
+
+func KeypairFromSeed(seed PrvKey, index uint32) (PubKey, PrvKey, error) {
 	// This seems to be the standard way of producing wallets.
 
 	// We hash together the seed with an address index and use
@@ -43,34 +47,20 @@ func KeypairFromSeed(seed string, index uint32) (ed25519.PublicKey, ed25519.Priv
 		return nil, nil, err
 	}
 
-	seedBytes, err := hex.DecodeString(seed)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	bs := make([]byte, 4)
 	binary.BigEndian.PutUint32(bs, index)
 
-	hash.Write(seedBytes)
+	hash.Write(seed)
 	hash.Write(bs)
 
 	in := hash.Sum(nil)
-	pub, prv, err := ed25519.GenerateKey(bytes.NewReader(in))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return pub, prv, err
+	return GenerateKey(bytes.NewReader(in))
 }
 
-func GenerateKey() (ed25519.PublicKey, ed25519.PrivateKey, error) {
-	return ed25519.GenerateKey(nil)
-}
+type PubKey ed25519.PublicKey
 
-type AccPub ed25519.PublicKey
-
-func AccPubFromString(addr string) (AccPub, error) {
-	var a AccPub
+func PubKeyFromAddress(addr string) (PubKey, error) {
+	var a PubKey
 	// A valid xrb address is 64 bytes long
 	// First 4 are simply a hard-coded string xrb_ for ease of use
 	// The following 52 characters form the address, and the final
@@ -93,7 +83,7 @@ func AccPubFromString(addr string) (AccPub, error) {
 
 	// Strip off upper 24 bits (3 bytes). 20 padding was added by us,
 	// 4 is unused as account is 256 bits.
-	a = AccPub(b[3:])
+	a = PubKey(b[3:])
 
 	// Xrb checksum is calculated by hashing the key and reversing the bytes
 	valid := XrbEncoding.EncodeToString(a.Checksum()) == checksum
@@ -104,13 +94,18 @@ func AccPubFromString(addr string) (AccPub, error) {
 	return a, nil
 }
 
-func AccPubFromSlice(data []byte) AccPub {
-	var a AccPub
+func PubKeyFromHex(s string) (PubKey, error) {
+	b, err := hex.DecodeString(s)
+	return PubKey(b), err
+}
+
+func PubKeyFromSlice(data []byte) PubKey {
+	var a PubKey
 	copy(a[:], data)
 	return a
 }
 
-func (a AccPub) Checksum() []byte {
+func (a PubKey) Checksum() []byte {
 	hash, err := blake2b.New(5, nil)
 	if err != nil {
 		panic("Unable to create hash")
@@ -120,11 +115,11 @@ func (a AccPub) Checksum() []byte {
 	return utils.Reversed(hash.Sum(nil))
 }
 
-func (a AccPub) Equal(o AccPub) bool {
+func (a PubKey) Equal(o PubKey) bool {
 	return reflect.DeepEqual(a, o)
 }
 
-func (a AccPub) String() string {
+func (a PubKey) Address() string {
 	// Pubkey is 256bits, base32 must be multiple of 5 bits
 	// to encode properly.
 	// Pad the start with 0's and strip them off after base32 encoding
@@ -135,13 +130,18 @@ func (a AccPub) String() string {
 	return "xrb_" + address + checksum
 }
 
-func (a *AccPub) UnmarshalJSON(data []byte) error {
+func (a PubKey) Hex() string {
+	return strings.ToUpper(hex.EncodeToString(a))
+}
+
+func (a *PubKey) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
 
-	r, err := AccPubFromString(s)
+	// TODO: determine representation (hex, addr?)
+	r, err := PubKeyFromAddress(s)
 	if err != nil {
 		return err
 	}
@@ -151,6 +151,49 @@ func (a *AccPub) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (a AccPub) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.String())
+func (a PubKey) MarshalJSON() ([]byte, error) {
+	return json.Marshal(a.Address())
+}
+
+type PrvKey ed25519.PrivateKey
+
+func PrvKeyFromString(data string) (PrvKey, error) {
+	b, err := hex.DecodeString(data)
+	return PrvKey(b), err
+}
+
+func PrvKeyFromSlice(data []byte) PrvKey {
+	return PrvKey(data)
+}
+
+func (k PrvKey) Sign(data []byte) Signature {
+	return SignatureFromSlice(ed25519.Sign(ed25519.PrivateKey(k), data))
+}
+
+func (k PrvKey) Equal(o PrvKey) bool {
+	return reflect.DeepEqual(k, o)
+}
+
+func (k PrvKey) String() string {
+	return strings.ToUpper(hex.EncodeToString(k))
+}
+
+func (k *PrvKey) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	r, err := PrvKeyFromString(s)
+	if err != nil {
+		return err
+	}
+
+	*k = r
+
+	return nil
+}
+
+func (k PrvKey) MarshalJSON() ([]byte, error) {
+	return json.Marshal(k.String())
 }

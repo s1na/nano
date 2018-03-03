@@ -1,12 +1,8 @@
 package wallet
 
 import (
-	"encoding/hex"
 	"encoding/json"
-	"strings"
 
-	"github.com/frankh/crypto/ed25519"
-	"github.com/frankh/nano/account"
 	"github.com/frankh/nano/types"
 
 	"github.com/pkg/errors"
@@ -14,69 +10,83 @@ import (
 )
 
 type Wallet struct {
-	Id       string
-	Seed     string
-	Accounts map[string]*account.Account
+	Id       types.PubKey
+	Seed     types.PrvKey
+	Accounts map[string]types.PrvKey
 }
 
 func NewWallet() *Wallet {
 	w := new(Wallet)
 
-	w.Accounts = make(map[string]*account.Account)
+	w.Accounts = make(map[string]types.PrvKey)
 
 	return w
 }
 
-func (w *Wallet) Init() (string, error) {
+func (w *Wallet) Init() (types.PubKey, error) {
 	if err := w.GenerateSeed(); err != nil {
-		return "", errors.Wrap(err, "generating seed failed")
+		return types.PubKey{}, errors.Wrap(err, "generating seed failed")
 	}
 
 	if err := w.GenerateID(); err != nil {
-		return "", errors.Wrap(err, "generating id failed")
+		return types.PubKey{}, errors.Wrap(err, "generating id failed")
 	}
 
 	return w.Id, nil
 }
 
 func (w *Wallet) GenerateSeed() error {
-	_, prv, err := ed25519.GenerateKey(nil)
+	_, prv, err := types.GenerateKey(nil)
 	if err != nil {
 		return err
 	}
 
-	w.Seed = strings.ToUpper(hex.EncodeToString(prv))
+	w.Seed = prv
 
 	return nil
 }
 
 func (w *Wallet) GenerateID() error {
-	pub, _, err := ed25519.GenerateKey(nil)
+	pub, _, err := types.GenerateKey(nil)
 	if err != nil {
 		return err
 	}
 
-	w.Id = strings.ToUpper(hex.EncodeToString(pub))
+	w.Id = pub
 
 	return nil
 }
 
-func (w *Wallet) NewAccount() *account.Account {
-	a := account.NewAccount()
-
+func (w *Wallet) NewAccount() types.PubKey {
 	pub, prv, _ := types.KeypairFromSeed(w.Seed, uint32(len(w.Accounts)))
-	a.PublicKey = pub
-	a.PrivateKey = prv
-	w.Accounts[string(a.Address())] = a
+	w.Accounts[pub.Address()] = prv
 
-	return a
+	return pub
 }
+
+func (w *Wallet) InsertAdhoc(pub types.PubKey, prv types.PrvKey) {
+	w.Accounts[pub.Address()] = prv
+}
+
+func (w *Wallet) HasAccount(addr string) bool {
+	_, ok := w.Accounts[addr]
+	return ok
+}
+
+/*func (w *Wallet) GetAccount(addr string) (*account.Account, bool) {
+	a, ok := w.Accounts[addr]
+	if !ok {
+		return nil, false
+	}
+
+	return a, true
+}*/
 
 func (w *Wallet) String() string {
 	b, err := json.Marshal(w)
 	if err != nil {
 		log.Warn(err)
-		return w.Id
+		return w.Id.Hex()
 	}
 
 	return string(b)

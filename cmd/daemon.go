@@ -13,14 +13,12 @@ import (
 
 var (
 	InitialPeer string
-	TestNet     bool
 	Verbose     bool
 )
 
 func init() {
 	rootCmd.AddCommand(daemonCmd)
 	daemonCmd.Flags().StringVarP(&InitialPeer, "peer", "p", "::ffff:192.168.0.70", "Initial peer to make contact with")
-	daemonCmd.Flags().BoolVarP(&TestNet, "testnet", "t", false, "Use test network configuration")
 	daemonCmd.Flags().BoolVarP(&Verbose, "verbose", "v", false, "Verbose mode")
 }
 

@@ -64,7 +64,7 @@ func WorkFromSlice(b []byte) Work {
 // work and the block hash and convert this to a uint64
 // which must be higher (or equal) than the difficulty
 // (0xffffffc000000000) to be valid.
-func (w Work) Validate(blockHash [32]byte) bool {
+func (w Work) Validate(blockHash BlockHash) bool {
 	hash, err := blake2b.New(8, nil)
 	if err != nil {
 		panic("Unable to create hash")

@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/frankh/nano/account"
 	"github.com/frankh/nano/store"
+	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/wallet"
 
 	"github.com/pkg/errors"
@@ -28,7 +30,10 @@ var accountCreateCmd = &cobra.Command{
 	Long:  `Create an account in a wallet, and display its address.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		wid := args[0]
+		wid, err := types.PubKeyFromHex(args[0])
+		if err != nil {
+			return err
+		}
 
 		store := store.NewStore(DataDir)
 		if err := store.Start(); err != nil {
@@ -58,15 +63,18 @@ var accountGetCmd = &cobra.Command{
 	Long:  `Display information stored about an account.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		addr := args[0]
+		pub, err := types.PubKeyFromAddress(args[0])
+		if err != nil {
+			return err
+		}
 
 		store := store.NewStore(DataDir)
 		if err := store.Start(); err != nil {
 			return err
 		}
 
-		ws := wallet.NewWalletStore(store)
-		a, err := ws.GetAccount(addr)
+		as := account.NewAccountStore(store)
+		a, err := as.GetAccount(pub)
 		if err != nil {
 			return err
 		}

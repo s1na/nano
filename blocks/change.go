@@ -6,7 +6,7 @@ import (
 
 type ChangeBlock struct {
 	Previous       types.BlockHash
-	Representative types.AccPub
+	Representative types.PubKey
 	CommonBlock
 }
 
@@ -26,6 +26,6 @@ func (*ChangeBlock) Type() BlockType {
 	return Change
 }
 
-func HashChange(previous types.BlockHash, representative types.AccPub) types.BlockHash {
+func HashChange(previous types.BlockHash, representative types.PubKey) types.BlockHash {
 	return HashBytes(previous[:], representative)
 }

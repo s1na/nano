@@ -6,9 +6,6 @@ import (
 	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/uint128"
 
-	// We've forked golang's ed25519 implementation
-	// to use blake2b instead of sha3
-	"github.com/frankh/crypto/ed25519"
 	"github.com/golang/crypto/blake2b"
 	"github.com/pkg/errors"
 )
@@ -63,6 +60,7 @@ type Block interface {
 type CommonBlock struct {
 	Work      types.Work
 	Signature types.Signature
+	Account   types.PubKey
 }
 
 func (b *CommonBlock) GetSignature() types.Signature {
@@ -76,13 +74,13 @@ func (b *CommonBlock) GetWork() types.Work {
 type RawBlock struct {
 	Type           BlockType
 	Source         types.BlockHash
-	Representative types.AccPub
-	Account        types.AccPub
+	Representative types.PubKey
+	Account        types.PubKey
 	Work           types.Work
 	Signature      types.Signature
 	Previous       types.BlockHash
 	Balance        uint128.Uint128
-	Destination    types.AccPub
+	Destination    types.PubKey
 }
 
 func FromJson(b []byte) (Block, error) {
@@ -151,12 +149,17 @@ func (b RawBlock) HashToString() string {
 }
 
 func SignMessage(prvStr string, message []byte) (types.Signature, error) {
-	_, prv, err := types.KeypairFromPrivateKey(prvStr)
+	key, err := types.PrvKeyFromString(prvStr)
+	if err != nil {
+		return types.Signature{}, nil
+	}
+
+	_, prv, err := types.KeypairFromPrvKey(key)
 	if err != nil {
 		return types.Signature{}, err
 	}
 
-	return types.SignatureFromSlice(ed25519.Sign(prv, message)), nil
+	return prv.Sign(message), nil
 }
 
 func HashBytes(inputs ...[]byte) types.BlockHash {

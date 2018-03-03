@@ -12,10 +12,12 @@ import (
 
 var (
 	DataDir string
+	TestNet bool
 )
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&DataDir, "data-dir", "d", "", "Directory to put generated files, e.g. db.")
+	rootCmd.PersistentFlags().BoolVarP(&TestNet, "testnet", "t", false, "Use test network configuration")
 }
 
 var rootCmd = &cobra.Command{

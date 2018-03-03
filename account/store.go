@@ -5,10 +5,9 @@ import (
 	"encoding/gob"
 
 	"github.com/frankh/nano/store"
+	"github.com/frankh/nano/types"
 )
 
-// TODO: Decide whether accounts should be
-// stored separately, or under wallets
 type AccountStore struct {
 	s *store.Store
 }
@@ -28,11 +27,11 @@ func (s *AccountStore) SetAccount(a *Account) error {
 		return err
 	}
 
-	return s.s.Set([]byte("account:"+a.Address()), buf.Bytes())
+	return s.s.Set(append([]byte("account:"), a.PublicKey...), buf.Bytes())
 }
 
-func (s *AccountStore) GetAccount(id string) (*Account, error) {
-	v, err := s.s.Get([]byte("account:" + id))
+func (s *AccountStore) GetAccount(pub types.PubKey) (*Account, error) {
+	v, err := s.s.Get(append([]byte("account:"), pub...))
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/frankh/nano/blocks"
 	"github.com/frankh/nano/store"
 	"github.com/frankh/nano/wallet"
 
@@ -15,6 +16,7 @@ import (
 var (
 	db        *store.Store
 	walletsCh chan *wallet.Wallet
+	blocksCh  chan blocks.Block
 )
 
 type Server struct {
@@ -22,7 +24,7 @@ type Server struct {
 	handler *Handler
 }
 
-func NewServer(st *store.Store, wCh chan *wallet.Wallet) *Server {
+func NewServer(st *store.Store, wCh chan *wallet.Wallet, bCh chan blocks.Block) *Server {
 	s := new(Server)
 
 	s.handler = NewHandler()
@@ -32,6 +34,7 @@ func NewServer(st *store.Store, wCh chan *wallet.Wallet) *Server {
 	}
 	db = st
 	walletsCh = wCh
+	blocksCh = bCh
 
 	return s
 }

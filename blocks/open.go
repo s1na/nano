@@ -7,8 +7,8 @@ import (
 
 type OpenBlock struct {
 	Source         types.BlockHash
-	Representative types.AccPub
-	Account        types.AccPub
+	Representative types.PubKey
+	Account        types.PubKey
 	CommonBlock
 }
 
@@ -32,6 +32,6 @@ func (b *OpenBlock) VerifySignature() (bool, error) {
 	return ed25519.Verify(ed25519.PublicKey(b.Account), b.Hash().Slice(), b.Signature[:]), nil
 }
 
-func HashOpen(source types.BlockHash, representative types.AccPub, account types.AccPub) types.BlockHash {
+func HashOpen(source types.BlockHash, representative types.PubKey, account types.PubKey) types.BlockHash {
 	return HashBytes(source[:], representative, account)
 }

@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/frankh/nano/store"
+	"github.com/frankh/nano/types"
 	"github.com/frankh/nano/wallet"
 
 	"github.com/spf13/cobra"
@@ -14,9 +16,10 @@ var ()
 func init() {
 	rootCmd.AddCommand(walletCmd)
 	walletCmd.AddCommand(walletCreateCmd)
-	walletCmd.AddCommand(walletImportCmd)
+	//walletCmd.AddCommand(walletImportCmd)
 	walletCmd.AddCommand(walletGetCmd)
 	walletCmd.AddCommand(walletListCmd)
+	walletCmd.AddCommand(walletAddCmd)
 }
 
 var walletCmd = &cobra.Command{
@@ -46,20 +49,21 @@ var walletCreateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println(id)
+		fmt.Println(id.Hex())
 
 		return nil
 	},
 }
 
+/*
 var walletImportCmd = &cobra.Command{
 	Use:   "import WALLET_ID WALLET_SEED",
 	Short: "Import a wallet",
 	Long:  `Import a wallet via its id and seed.`,
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		id := args[0]
-		seed := args[1]
+		idStr := args[0]
+		seedStr := args[1]
 
 		w := wallet.NewWallet()
 		w.Seed = seed
@@ -75,11 +79,11 @@ var walletImportCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Stored %s\n", w.Id)
+		fmt.Printf("Stored %s\n", w.Id.Hex())
 
 		return nil
 	},
-}
+}*/
 
 var walletGetCmd = &cobra.Command{
 	Use:   "get",
@@ -87,10 +91,13 @@ var walletGetCmd = &cobra.Command{
 	Long:  `Display information stored about a wallet.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		id := args[0]
+		id, err := types.PubKeyFromHex(args[0])
+		if err != nil {
+			return err
+		}
 
 		store := store.NewStore(DataDir)
-		err := store.Start()
+		err = store.Start()
 		if err != nil {
 			return err
 		}
@@ -127,6 +134,50 @@ var walletListCmd = &cobra.Command{
 		for _, w := range wallets {
 			fmt.Println(w.String())
 		}
+
+		return nil
+	},
+}
+
+var walletAddCmd = &cobra.Command{
+	Use:   "add WALLET_ID PRIVATE_KEY",
+	Short: "Add an adhoc account",
+	Long:  `Add an adhoc private key to wallet, and display its address.`,
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		wid, err := types.PubKeyFromHex(args[0])
+		if err != nil {
+			return err
+		}
+
+		key, err := types.PrvKeyFromString(args[1])
+		if err != nil {
+			return err
+		}
+
+		store := store.NewStore(DataDir)
+		err = store.Start()
+		if err != nil {
+			return err
+		}
+
+		ws := wallet.NewWalletStore(store)
+		wal, err := ws.GetWallet(wid)
+		if err != nil {
+			return err
+		}
+
+		pub, prv, err := types.KeypairFromPrvKey(key)
+		if err != nil {
+			return err
+		}
+
+		wal.InsertAdhoc(pub, prv)
+		if err = ws.SetWallet(wal); err != nil {
+			return errors.New("internal error")
+		}
+
+		fmt.Println(pub.Address())
 
 		return nil
 	},

@@ -25,8 +25,8 @@ var invalidAddresses = []string{
 	"xrb_8nm8t5rimw6h6j7wyokbs8jiygzs7baoha4pqzhfw1k79npyr1km8w6y7r8",
 }
 
-func TestAccPubFromString(t *testing.T) {
-	a, err := AccPubFromString("xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3")
+func TestPubKeyFromAddress(t *testing.T) {
+	a, err := PubKeyFromAddress("xrb_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3")
 	require.Nil(t, err)
 	assert.Equal(t, "e89208dd038fbb269987689621d52292ae9c35941a7484756ecced92a65093ba", hex.EncodeToString(a))
 }
@@ -43,6 +43,8 @@ func TestValidateAddress(t *testing.T) {
 
 func TestKeypairFromSeed(t *testing.T) {
 	seed := "1234567890123456789012345678901234567890123456789012345678901234"
+	seedBytes, err := hex.DecodeString(seed)
+	require.Nil(t, err)
 
 	// Generated from the official RaiBlocks wallet using above seed.
 	expected := map[uint32]string{
@@ -54,15 +56,26 @@ func TestKeypairFromSeed(t *testing.T) {
 	}
 
 	for k, v := range expected {
-		pub, _, err := KeypairFromSeed(seed, k)
+		pub, _, err := KeypairFromSeed(PrvKey(seedBytes), k)
 		require.Nil(t, err)
-		assert.Equal(t, v, AccPub(pub).String())
+		assert.Equal(t, v, PubKey(pub).Address())
 	}
+}
+
+func TestKeypairFromPrvKey(t *testing.T) {
+	keyStr := "9C5CC0CA478CE841E33806D05100644C592DAA825E6AC13A125D0731AD0424C51480F0DD781A863189DA84970CB717B956984EFA931890677F10C04337ADE4FD"
+	key, err := PrvKeyFromString(keyStr)
+	require.Nil(t, err)
+
+	_, prv, err := KeypairFromPrvKey(key)
+	require.Nil(t, err)
+
+	assert.Equal(t, key, prv)
 }
 
 func BenchmarkGenerateAddress(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		pub, _, _ := GenerateKey()
-		AccPub(pub).String()
+		pub, _, _ := GenerateKey(nil)
+		PubKey(pub).Address()
 	}
 }

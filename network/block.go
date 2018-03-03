@@ -40,7 +40,7 @@ func (m *Block) ToBlock() blocks.Block {
 	case sendBlock:
 		block := blocks.SendBlock{
 			types.BlockHash(m.Previous),
-			types.AccPub(m.Destination[:]),
+			types.PubKey(m.Destination[:]),
 			uint128.FromBytes(m.Balance[:]),
 			common,
 		}
@@ -48,15 +48,15 @@ func (m *Block) ToBlock() blocks.Block {
 	case openBlock:
 		block := blocks.OpenBlock{
 			types.BlockHash(m.Source),
-			types.AccPub(m.Representative[:]),
-			types.AccPub(m.Account[:]),
+			types.PubKey(m.Representative[:]),
+			types.PubKey(m.Account[:]),
 			common,
 		}
 		return &block
 	case changeBlock:
 		block := blocks.ChangeBlock{
 			types.BlockHash(m.Previous),
-			types.AccPub(m.Representative[:]),
+			types.PubKey(m.Representative[:]),
 			common,
 		}
 		return &block
@@ -69,12 +69,12 @@ func (m *Block) ToBlock() blocks.Block {
 		return &block
 	case utxBlock:
 		block := blocks.UtxBlock{
-			types.AccPub(m.Account[:]),
+			types.PubKey(m.Account[:]),
 			types.BlockHash(m.Previous),
-			types.AccPub(m.Representative[:]),
+			types.PubKey(m.Representative[:]),
 			uint128.FromBytes(m.Balance[:]),
 			uint128.FromBytes(m.Amount[:]),
-			types.AccPub(m.Link[:]),
+			types.PubKey(m.Link[:]),
 			common,
 		}
 		return &block

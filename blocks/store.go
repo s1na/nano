@@ -24,26 +24,13 @@ func NewBlockStore(store *store.Store) *BlockStore {
 	s.orphanBlocks = make(map[types.BlockHash]Block)
 
 	// Register block types for gob, so it encodes
-	// and decoes the Block interface.
+	// and decodes the Block interface.
 	gob.Register(&OpenBlock{})
 	gob.Register(&SendBlock{})
 	gob.Register(&ChangeBlock{})
 	gob.Register(&ReceiveBlock{})
 
 	return s
-}
-
-func (s *BlockStore) Init() error {
-	_, err := s.GetBlock(GenesisBlock.Hash())
-	if err != nil {
-		if err == badger.ErrKeyNotFound {
-			return s.SetBlock(GenesisBlock)
-		} else {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (s *BlockStore) SetBlock(b Block) error {
@@ -55,18 +42,25 @@ func (s *BlockStore) SetBlock(b Block) error {
 		return errors.New("unknown block type")
 	}
 
-	if _, ok := s.orphanBlocks[b.GetPrevious()]; !ok {
-		s.orphanBlocks[b.GetPrevious()] = b
-		log.WithFields(log.Fields{
-			"hash":     b.Hash().String(),
-			"previous": b.GetPrevious().String(),
-		}).Info("Added orphan block")
-		return errors.New("cannot find parent block")
+	_, err := s.GetBlock(b.GetPrevious())
+	if err != nil {
+		if err == badger.ErrKeyNotFound {
+			if _, ok := s.orphanBlocks[b.GetPrevious()]; !ok && b.Hash() != GenesisBlock.Hash() {
+				s.orphanBlocks[b.GetPrevious()] = b
+				log.WithFields(log.Fields{
+					"hash":     b.Hash().String(),
+					"previous": b.GetPrevious().String(),
+				}).Info("Added orphan block")
+				return errors.New("cannot find parent block")
+			}
+		} else {
+			return err
+		}
 	}
 
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
-	if err := enc.Encode(b); err != nil {
+	if err := enc.Encode(&b); err != nil {
 		return err
 	}
 
