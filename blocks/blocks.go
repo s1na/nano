@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/s1na/nano/types"
-	"github.com/s1na/nano/uint128"
+	"github.com/s1na/nano/types/uint128"
 
 	"github.com/golang/crypto/blake2b"
 	"github.com/pkg/errors"

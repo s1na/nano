@@ -8,7 +8,7 @@ import (
 	"github.com/s1na/nano/blocks"
 	"github.com/s1na/nano/store"
 	"github.com/s1na/nano/types"
-	"github.com/s1na/nano/uint128"
+	"github.com/s1na/nano/types/uint128"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

@@ -2,7 +2,7 @@ package blocks
 
 import (
 	"github.com/s1na/nano/types"
-	"github.com/s1na/nano/uint128"
+	"github.com/s1na/nano/types/uint128"
 
 	"github.com/frankh/crypto/ed25519"
 )

@@ -10,7 +10,7 @@ import (
 	"github.com/s1na/nano/account"
 	"github.com/s1na/nano/blocks"
 	"github.com/s1na/nano/types"
-	"github.com/s1na/nano/uint128"
+	"github.com/s1na/nano/types/uint128"
 	"github.com/s1na/nano/wallet"
 
 	"github.com/pkg/errors"
